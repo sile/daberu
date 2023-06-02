@@ -69,6 +69,20 @@ $ jq . chat.log
 ]
 ```
 
+The following example utilizes shell pipeline to get an advice from ChatGPT about an existing file:
+```console
+$ echo 'How to improve next code?:' | cat - src/main.rs | daberu
+The code looks concise and well-structured. A few suggestions to further improve it could be:
+
+1. Add more documentation to the code, especially to the `Args` struct and its fields. This will help users understand the purpose and usage of each field.
+
+2. Handle errors and display meaningful error messages to the user. Right now, the code uses the `orfail` crate to return an error message, but it doesn't provide any additional context or information about the error. Consider adding more descriptive error messages or logging errors to a file.
+
+3. Add unit tests to verify the correctness of the code. This is especially important since the code relies on external libraries and APIs.
+
+4. Consider adding more features to the ChatGPT client tool, such as allowing users to specify the input and output files, or enabling interactive mode where the user can have multiple conversations with the model.
+```
+
 References
 ----------
 

@@ -1,4 +1,4 @@
-use orfail::OrFail;
+use orfail::{Failure, OrFail};
 use std::{
     io::{BufRead, BufReader, Read, Write},
     path::PathBuf,
@@ -65,21 +65,21 @@ impl ChatGpt {
     }
 
     fn handle_stream_response(&self, response: ureq::Response) -> orfail::Result<Message> {
-        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        #[derive(Debug, serde::Deserialize)]
         struct Data {
             choices: Vec<Choice>,
         }
 
-        // TODO: stop reason
-        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        #[derive(Debug, serde::Deserialize)]
         struct Choice {
             delta: Delta,
+            finish_reason: Option<FinishReason>,
         }
 
-        #[derive(Debug, serde::Deserialize, serde::Serialize)]
+        #[derive(Debug, serde::Deserialize)]
         struct Delta {
-            role: Option<Role>,
-            content: Option<String>,
+            #[serde(default)]
+            content: String,
         }
 
         let mut content = String::new();
@@ -102,12 +102,14 @@ impl ChatGpt {
                     let reason = f.message.take().unwrap_or_default();
                     f.message(format!("failed to parse line: {line} ({reason})"))
                 })?;
-            (data.choices.len() > 0).or_fail()?;
-            if let Some(s) = &data.choices[0].delta.content {
-                content.push_str(s);
-                print!("{}", s);
-                std::io::stdout().flush().or_fail()?;
+            (!data.choices.is_empty()).or_fail()?;
+            if let Some(reason) = data.choices[0].finish_reason {
+                reason.check().or_fail()?;
             }
+
+            content.push_str(&data.choices[0].delta.content);
+            print!("{}", data.choices[0].delta.content);
+            std::io::stdout().flush().or_fail()?;
         }
         println!();
 
@@ -118,6 +120,17 @@ impl ChatGpt {
     }
 
     fn handle_response(&self, response: ureq::Response) -> orfail::Result<Message> {
+        #[derive(Debug, serde::Deserialize)]
+        struct ResponseBody {
+            choices: Vec<Choice>,
+        }
+
+        #[derive(Debug, serde::Deserialize)]
+        struct Choice {
+            message: Message,
+            finish_reason: FinishReason,
+        }
+
         let response_json: serde_json::Value = response.into_json().or_fail()?;
 
         if self.verbose {
@@ -127,17 +140,11 @@ impl ChatGpt {
             );
         }
 
-        // TODO: check finish reason
         let response: ResponseBody = serde_json::from_value(response_json).or_fail()?;
-        response
-            .choices
-            .into_iter()
-            .next()
-            .map(|c| {
-                println!("{}", c.message.content);
-                c.message
-            })
-            .or_fail()
+        let choice = response.choices.into_iter().next().or_fail()?;
+        choice.finish_reason.check().or_fail()?;
+        println!("{}", choice.message.content);
+        Ok(choice.message)
     }
 }
 
@@ -249,37 +256,24 @@ pub enum Role {
     Assistant,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct ResponseBody {
-    // id: String,
-    // object: String,
-    // created: u64,
-    // model: Model,
-    choices: Vec<Choice>,
-    // usage: Usage,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct Choice {
-    pub index: u32,
-    pub message: Message,
-    pub finish_reason: FinishReason,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct Usage {
-    pub prompt_tokens: u32,
-    pub completion_tokens: u32,
-    pub total_tokens: u32,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FinishReason {
     Stop,
     Length,
     ContentFilter,
-    Null,
-    #[serde(other)]
-    Other,
+}
+
+impl FinishReason {
+    pub fn check(self) -> orfail::Result<()> {
+        match self {
+            Self::Stop => Ok(()),
+            Self::Length => Err(Failure::new()
+                .message("Incomplete model output due to max_tokens parameter or token limit")),
+            Self::ContentFilter => {
+                Err(Failure::new()
+                    .message("Omitted content due to a flag from our content filters"))
+            }
+        }
+    }
 }

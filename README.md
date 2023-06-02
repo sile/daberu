@@ -69,7 +69,7 @@ $ jq . chat.log
 ]
 ```
 
-The following example utilizes shell pipeline to get an advice from ChatGPT about an existing file:
+The following example utilizes shell pipeline to get advice from ChatGPT about an existing file:
 ```console
 $ echo 'How to improve the following code?:' | cat - src/main.rs | daberu
 The code looks concise and well-structured. A few suggestions to further improve it could be:

@@ -71,6 +71,9 @@ $ jq . chat.log
 
 The following example utilizes shell pipeline to get advice from ChatGPT about an existing file:
 ```console
+$ git clone https://github.com/sile/daberu
+$ cd daberu/
+
 $ echo 'How to improve the following code?:' | cat - src/main.rs | daberu
 The code looks concise and well-structured. A few suggestions to further improve it could be:
 
@@ -81,6 +84,14 @@ The code looks concise and well-structured. A few suggestions to further improve
 3. Add unit tests to verify the correctness of the code. This is especially important since the code relies on external libraries and APIs.
 
 4. Consider adding more features to the ChatGPT client tool, such as allowing users to specify the input and output files, or enabling interactive mode where the user can have multiple conversations with the model.
+```
+
+In the next example, a system role message is used to instruct ChatGPT:
+```console
+$ git diff d8be79e..cb34a00 | daberu --system 'Please write consice changelog entries for the following diff.'
+- Added author, license, description, homepage, repository, and readme fields to Cargo.toml
+- Removed documentation badge and Actions Status badge from README.md
+- Added an example utilizing shell pipeline to get advice from ChatGPT about an existing file to README.md
 ```
 
 References

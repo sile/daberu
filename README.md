@@ -71,7 +71,7 @@ $ jq . chat.log
 
 The following example utilizes shell pipeline to get an advice from ChatGPT about an existing file:
 ```console
-$ echo 'How to improve next code?:' | cat - src/main.rs | daberu
+$ echo 'How to improve the following code?:' | cat - src/main.rs | daberu
 The code looks concise and well-structured. A few suggestions to further improve it could be:
 
 1. Add more documentation to the code, especially to the `Args` struct and its fields. This will help users understand the purpose and usage of each field.

@@ -2,8 +2,6 @@ daberu
 ======
 
 [![daberu](https://img.shields.io/crates/v/daberu.svg)](https://crates.io/crates/daberu)
-[![Documentation](https://docs.rs/daberu/badge.svg)](https://docs.rs/daberu)
-[![Actions Status](https://github.com/sile/daberu/workflows/CI/badge.svg)](https://github.com/sile/daberu/actions)
 ![License](https://img.shields.io/crates/l/daberu)
 
 A simple command-line tool for conversing with ChatGPT.

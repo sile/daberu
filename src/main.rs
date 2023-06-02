@@ -2,7 +2,7 @@ use clap::Parser;
 use daberu::ChatGpt;
 use orfail::OrFail;
 
-/// A tool for conversing with ChatGPT.
+/// ChatGPT client tool that reads your message from stdin and writes the response to stdout.
 #[derive(Debug, Parser)]
 #[command(version)]
 struct Args {

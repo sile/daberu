@@ -8,6 +8,8 @@ daberu
 
 A simple command-line tool for conversing with ChatGPT.
 
+"daberu" is a Japanese translation of "chatting".
+
 ```console
 $ daberu -h
 ChatGPT client tool that reads your message from stdin and writes the response to stdout
@@ -22,7 +24,19 @@ Options:
       --verbose                   If specified, HTTP request and response body JSONs are printed to stderr
   -h, --help                      Print help
   -V, --version                   Print version
+```
 
+Installation
+------------
+
+```cosnole
+$ cargo install daberu
+```
+
+Usage Examle
+------------
+
+```console
 $ export OPENAI_API_KEY="YOUR API KEY"
 
 // Conversation without history.

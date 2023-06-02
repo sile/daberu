@@ -29,14 +29,13 @@ Installation
 
 ```cosnole
 $ cargo install daberu
+$ export OPENAI_API_KEY="YOUR API KEY"
 ```
 
 Usage Examle
 ------------
 
 ```console
-$ export OPENAI_API_KEY="YOUR API KEY"
-
 // Conversation without history.
 $ echo hi | daberu
 Hello! How can I assist you today?

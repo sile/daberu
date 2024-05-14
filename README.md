@@ -17,7 +17,7 @@ Usage: daberu [OPTIONS] --api-key <OPENAI_API_KEY>
 Options:
       --api-key <OPENAI_API_KEY>  OpenAI API key [env: OPENAI_API_KEY]
       --log <LOG_FILE_PATH>       Log file path to save the conversation history. If the file already exists, the history will be considered in the next conversation
-      --model <MODEL>             ChatGPT model name [env: CHATGPT_MODEL=] [default: gpt-3.5-turbo] [possible values: gpt-4, gpt-4-0314, gpt-4-32k, gpt-4-32k-0314, gpt-3.5-turbo, gpt-3.5-turbo-0301]
+      --model <MODEL>             ChatGPT model name [env: CHATGPT_MODEL=] [default: gpt-4o] [possible values: gpt-4, gpt-4o, gpt-4-0314, gpt-4-32k, gpt-4-32k-0314, gpt-3.5-turbo, gpt-3.5-turbo-0301]
       --system <SYSTEM_MESSAGE>   If specified, the system role message will be added to the beginning of the conversation [env: CHATGPT_SYSTEM_MESSAGE=]
       --verbose                   If specified, HTTP request and response body JSONs are printed to stderr
   -h, --help                      Print help

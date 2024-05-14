@@ -97,11 +97,7 @@ impl ChatGpt {
             }
 
             let data: Data = serde_json::from_str(&line["data: ".len()..])
-                .or_fail()
-                .map_err(|mut f| {
-                    let reason = f.message.take().unwrap_or_default();
-                    f.message(format!("failed to parse line: {line} ({reason})"))
-                })?;
+                .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             (!data.choices.is_empty()).or_fail()?;
             if let Some(reason) = data.choices[0].finish_reason {
                 reason.check().or_fail()?;
@@ -273,12 +269,12 @@ impl FinishReason {
     pub fn check(self) -> orfail::Result<()> {
         match self {
             Self::Stop => Ok(()),
-            Self::Length => Err(Failure::new()
-                .message("Incomplete model output due to max_tokens parameter or token limit")),
-            Self::ContentFilter => {
-                Err(Failure::new()
-                    .message("Omitted content due to a flag from our content filters"))
-            }
+            Self::Length => Err(Failure::new(
+                "Incomplete model output due to max_tokens parameter or token limit",
+            )),
+            Self::ContentFilter => Err(Failure::new(
+                "Omitted content due to a flag from our content filters",
+            )),
         }
     }
 }

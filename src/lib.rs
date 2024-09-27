@@ -30,6 +30,9 @@ pub struct ChatGpt {
     /// If specified, HTTP request and response body JSONs are printed to stderr.
     #[arg(long)]
     verbose: bool,
+
+    #[arg(short, long)]
+    echo_input: bool,
 }
 
 impl ChatGpt {
@@ -44,6 +47,24 @@ impl ChatGpt {
             .set("Authorization", &format!("Bearer {}", self.api_key))
             .send_json(&request)
             .or_fail()?;
+
+        if self.echo_input {
+            println!("Input");
+            println!("=====");
+            println!();
+            println!("```console");
+            println!(
+                "$ echo -e {:?} | daberu {}",
+                request.messages.last().or_fail()?.content.trim(),
+                std::env::args().skip(1).collect::<Vec<_>>().join(" ")
+            );
+            println!("```");
+            println!();
+            println!("Output");
+            println!("======");
+            println!();
+        }
+
         let reply = if self.verbose {
             self.handle_response(response).or_fail()?
         } else {
@@ -54,6 +75,7 @@ impl ChatGpt {
             let file = std::fs::OpenOptions::new()
                 .create(true)
                 .write(true)
+                .truncate(true)
                 .open(log)
                 .or_fail()?;
             let mut log = request.messages;

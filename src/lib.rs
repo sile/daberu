@@ -21,7 +21,7 @@ pub struct ChatGpt {
 
     /// ChatGPT model name.
     #[arg(long, env = "CHATGPT_MODEL", default_value = "gpt-4o")]
-    model: Model,
+    model: String,
 
     /// If specified, the system role message will be added to the beginning of the conversation.
     #[arg(long, value_name = "SYSTEM_MESSAGE", env = "CHATGPT_SYSTEM_MESSAGE")]
@@ -144,69 +144,9 @@ impl ChatGpt {
     }
 }
 
-// https://platform.openai.com/docs/models/overview
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    clap::ValueEnum,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-#[allow(non_camel_case_types)]
-pub enum Model {
-    #[clap(name = "gpt-4")]
-    #[serde(rename = "gpt-4")]
-    Gpt4,
-
-    #[default]
-    #[clap(name = "gpt-4o")]
-    #[serde(rename = "gpt-4o")]
-    Gpt4o,
-
-    #[clap(name = "gpt-4-0314")]
-    #[serde(rename = "gpt-4-0314")]
-    Gpt4_0314,
-
-    #[clap(name = "gpt-4-32k")]
-    #[serde(rename = "gpt-4-32k")]
-    Gpt4_32k,
-
-    #[clap(name = "gpt-4-32k-0314")]
-    #[serde(rename = "gpt-4-32k-0314")]
-    Gpt4_32k_0314,
-
-    #[clap(name = "gpt-3.5-turbo")]
-    #[serde(rename = "gpt-3.5-turbo")]
-    Gpt35_Turbo,
-
-    #[clap(name = "gpt-3.5-turbo-0301")]
-    #[serde(rename = "gpt-3.5-turbo-0301")]
-    Gpt35_Turbo_0301,
-}
-
-impl std::fmt::Display for Model {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Model::Gpt4 => "gpt-4",
-            Model::Gpt4o => "gpt-4o",
-            Model::Gpt4_0314 => "gpt-4-0314",
-            Model::Gpt4_32k => "gp-4-32k",
-            Model::Gpt4_32k_0314 => "gpt-4-32k-0314",
-            Model::Gpt35_Turbo => "gpt-3.5-turbo",
-            Model::Gpt35_Turbo_0301 => "gpt-3.5-turbo-0301",
-        };
-        write!(f, "{}", s)
-    }
-}
-
 #[derive(Debug, serde::Serialize)]
 pub struct RequestBody {
-    model: Model,
+    model: String,
     stream: bool,
     messages: Vec<Message>,
 }
@@ -236,7 +176,7 @@ impl RequestBody {
             content: message.clone(),
         });
         Ok(Self {
-            model: chatgpt.model,
+            model: chatgpt.model.clone(),
             stream: !chatgpt.verbose,
             messages,
         })

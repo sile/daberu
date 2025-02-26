@@ -43,8 +43,8 @@ impl ChatGpt {
         }
 
         let response = ureq::post("https://api.openai.com/v1/chat/completions")
-            .set("Content-Type", "application/json")
-            .set("Authorization", &format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/json")
+            .header("Authorization", &format!("Bearer {}", self.api_key))
             .send_json(&request)
             .or_fail()?;
 
@@ -86,7 +86,10 @@ impl ChatGpt {
         Ok(())
     }
 
-    fn handle_stream_response(&self, response: ureq::Response) -> orfail::Result<Message> {
+    fn handle_stream_response(
+        &self,
+        response: ureq::http::response::Response<ureq::Body>,
+    ) -> orfail::Result<Message> {
         #[derive(Debug, serde::Deserialize)]
         struct Data {
             choices: Vec<Choice>,
@@ -105,7 +108,7 @@ impl ChatGpt {
         }
 
         let mut content = String::new();
-        let reader = BufReader::new(response.into_reader());
+        let reader = BufReader::new(response.into_body().into_reader());
         for line in reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {
@@ -137,7 +140,10 @@ impl ChatGpt {
         })
     }
 
-    fn handle_response(&self, response: ureq::Response) -> orfail::Result<Message> {
+    fn handle_response(
+        &self,
+        mut response: ureq::http::response::Response<ureq::Body>,
+    ) -> orfail::Result<Message> {
         #[derive(Debug, serde::Deserialize)]
         struct ResponseBody {
             choices: Vec<Choice>,
@@ -149,7 +155,7 @@ impl ChatGpt {
             finish_reason: FinishReason,
         }
 
-        let response_json: serde_json::Value = response.into_json().or_fail()?;
+        let response_json: serde_json::Value = response.body_mut().read_json().or_fail()?;
 
         if self.verbose {
             eprintln!(

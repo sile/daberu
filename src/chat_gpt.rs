@@ -5,39 +5,33 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(Debug, clap::Args)]
+use crate::command::Command;
+
+#[derive(Debug)]
 pub struct ChatGpt {
-    /// OpenAI API key.
-    #[arg(
-        long,
-        value_name = "OPENAI_API_KEY",
-        env = "OPENAI_API_KEY",
-        hide_env_values = true
-    )]
     api_key: String,
-
-    /// Log file path to save the conversation history. If the file already exists, the history will be considered in the next conversation.
-    #[arg(long, value_name = "LOG_FILE_PATH")]
     log: Option<PathBuf>,
-
-    /// ChatGPT model name.
-    #[arg(long, env = "CHATGPT_MODEL", default_value = "gpt-4o")]
     model: String,
-
-    /// If specified, the system role message will be added to the beginning of the conversation.
-    #[arg(long, value_name = "SYSTEM_MESSAGE", env = "CHATGPT_SYSTEM_MESSAGE")]
     system: Option<String>,
-
-    /// If specified, HTTP request and response body JSONs are printed to stderr.
-    #[arg(long)]
     verbose: bool,
-
-    #[arg(short, long)]
     echo_input: bool,
 }
 
 impl ChatGpt {
-    pub fn call(&self) -> orfail::Result<()> {
+    pub fn new(command: Command) -> orfail::Result<Self> {
+        Ok(Self {
+            api_key: command
+                .openai_api_key
+                .or_fail_with(|()| "OpenAI key is not specified".to_owned())?,
+            log: command.log,
+            model: command.model,
+            system: command.system,
+            verbose: false, // TODO: delete
+            echo_input: command.echo_input,
+        })
+    }
+
+    pub fn run(&self) -> orfail::Result<()> {
         let request = RequestBody::new(self).or_fail()?;
         if self.verbose {
             eprintln!("{}", serde_json::to_string_pretty(&request).or_fail()?);

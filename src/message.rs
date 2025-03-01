@@ -4,8 +4,8 @@ use orfail::OrFail;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Message {
-    role: Role,
-    content: String,
+    pub role: Role,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -16,7 +16,7 @@ pub enum Role {
     Assistant,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct MessageLog {
     pub messages: Vec<Message>,
 }

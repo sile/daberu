@@ -1,37 +1,36 @@
 use orfail::{Failure, OrFail};
 
-use std::{
-    io::{BufRead, BufReader, Read, Write},
-    path::PathBuf,
-};
+use std::io::{BufRead, BufReader, Read, Write};
 
-use crate::command::Command;
+use crate::{
+    command::Command,
+    message::{Message, MessageLog, Role},
+};
 
 #[derive(Debug)]
 pub struct ChatGpt {
     api_key: String,
-    log: Option<PathBuf>, // TODO: refactor
     model: String,
-    system: Option<String>,
-    echo_input: bool, // TODO: refactor
+    system: Option<String>, // TODO: remove
+    echo_input: bool,       // TODO: refactor
 }
 
 impl ChatGpt {
-    pub fn new(command: Command) -> orfail::Result<Self> {
+    pub fn new(command: &Command) -> orfail::Result<Self> {
         Ok(Self {
             api_key: command
                 .openai_api_key
+                .clone()
                 .or_fail_with(|()| "OpenAI key is not specified".to_owned())?,
-            log: command.log,
-            model: command.model,
-            system: command.system,
+            model: command.model.clone(),
+            system: command.system.clone(),
             echo_input: command.echo_input,
         })
     }
 
     // TODO: return output
-    pub fn run(&self) -> orfail::Result<()> {
-        let request = RequestBody::new(self).or_fail()?;
+    pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
+        let request = RequestBody::new(self, log).or_fail()?;
 
         let response = ureq::post("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
@@ -57,20 +56,7 @@ impl ChatGpt {
         }
 
         let reply = self.handle_stream_response(response).or_fail()?;
-
-        if let Some(log) = &self.log {
-            let file = std::fs::OpenOptions::new()
-                .create(true)
-                .write(true)
-                .truncate(true)
-                .open(log)
-                .or_fail()?;
-            let mut log = request.messages;
-            log.push(reply);
-            serde_json::to_writer(file, &log).or_fail()?;
-        }
-
-        Ok(())
+        Ok(reply)
     }
 
     fn handle_stream_response(
@@ -135,13 +121,8 @@ pub struct RequestBody {
 }
 
 impl RequestBody {
-    pub fn new(chatgpt: &ChatGpt) -> orfail::Result<Self> {
-        let mut messages = Vec::new();
-        if let Some(log) = &chatgpt.log {
-            if let Ok(file) = std::fs::File::open(log) {
-                messages = serde_json::from_reader(file).or_fail()?;
-            }
-        }
+    pub fn new(chatgpt: &ChatGpt, log: &MessageLog) -> orfail::Result<Self> {
+        let mut messages = log.messages.clone();
 
         if messages.is_empty() {
             if let Some(system) = &chatgpt.system {
@@ -163,20 +144,6 @@ impl RequestBody {
             messages,
         })
     }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Message {
-    role: Role,
-    content: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Role {
-    System,
-    User,
-    Assistant,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]

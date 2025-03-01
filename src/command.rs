@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::chat_gpt::ChatGpt;
+use crate::{chat_gpt::ChatGpt, message::MessageLog};
 
 #[derive(Debug, clap::Args)]
 pub struct Command {
@@ -49,13 +49,28 @@ pub struct Command {
 
 impl Command {
     pub fn run(self) -> orfail::Result<()> {
-        if self.model.starts_with("gpt") {
-            let c = ChatGpt::new(self).or_fail()?;
-            c.run().or_fail()
+        let mut log = self
+            .log
+            .as_ref()
+            .map(MessageLog::load)
+            .transpose()
+            .or_fail()?
+            .unwrap_or_default();
+
+        let output = if self.model.starts_with("gpt") {
+            let c = ChatGpt::new(&self).or_fail()?;
+            c.run(&log).or_fail()?
         } else if self.model.starts_with("claude") {
-            todo!()
+            todo!();
         } else {
-            Err(orfail::Failure::new("unknown model"))
+            return Err(orfail::Failure::new("unknown model"));
+        };
+
+        log.messages.push(output);
+        if let Some(path) = &self.log {
+            log.save(path).or_fail()?;
         }
+
+        Ok(())
     }
 }

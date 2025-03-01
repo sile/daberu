@@ -29,6 +29,7 @@ impl ChatGpt {
         })
     }
 
+    // TODO: return output
     pub fn run(&self) -> orfail::Result<()> {
         let request = RequestBody::new(self).or_fail()?;
 

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{io::Read, path::Path};
 
 use orfail::OrFail;
 
@@ -45,5 +45,24 @@ impl MessageLog {
             format!("failed to save log file {}: {e}", path.as_ref().display())
         })?;
         Ok(())
+    }
+
+    pub fn read_input(&mut self) -> orfail::Result<()> {
+        let mut input = String::new();
+        std::io::stdin().read_to_string(&mut input).or_fail()?;
+        self.messages.push(Message {
+            role: Role::User,
+            content: input,
+        });
+        Ok(())
+    }
+
+    pub fn set_system_message_if_empty(&mut self, system: &str) {
+        if self.messages.is_empty() {
+            self.messages.push(Message {
+                role: Role::System,
+                content: system.to_owned(),
+            });
+        }
     }
 }

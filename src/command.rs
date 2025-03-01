@@ -49,13 +49,20 @@ pub struct Command {
 
 impl Command {
     pub fn run(self) -> orfail::Result<()> {
+        self.check_api_key().or_fail()?;
+
         let mut log = self
             .log
             .as_ref()
+            .filter(|path| path.exists())
             .map(MessageLog::load)
             .transpose()
             .or_fail()?
             .unwrap_or_default();
+        if let Some(system) = &self.system {
+            log.set_system_message_if_empty(system);
+        }
+        log.read_input().or_fail()?;
 
         let output = if self.model.starts_with("gpt") {
             let c = ChatGpt::new(&self).or_fail()?;
@@ -63,7 +70,7 @@ impl Command {
         } else if self.model.starts_with("claude") {
             todo!();
         } else {
-            return Err(orfail::Failure::new("unknown model"));
+            unreachable!()
         };
 
         log.messages.push(output);
@@ -71,6 +78,20 @@ impl Command {
             log.save(path).or_fail()?;
         }
 
+        Ok(())
+    }
+
+    fn check_api_key(&self) -> orfail::Result<()> {
+        if self.model.starts_with("gpt") {
+            self.openai_api_key
+                .is_some()
+                .or_fail_with(|()| "OpenAI API key is not specified".to_owned())?;
+        } else if self.model.starts_with("claude") {
+            self.anthropic_api_key
+                .is_some()
+                .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;
+        } else {
+        }
         Ok(())
     }
 }

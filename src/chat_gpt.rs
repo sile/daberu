@@ -1,6 +1,6 @@
 use orfail::{Failure, OrFail};
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 
 use crate::{
     command::Command,
@@ -11,19 +11,14 @@ use crate::{
 pub struct ChatGpt {
     api_key: String,
     model: String,
-    system: Option<String>, // TODO: remove
-    echo_input: bool,       // TODO: refactor
+    echo_input: bool, // TODO: refactor
 }
 
 impl ChatGpt {
     pub fn new(command: &Command) -> orfail::Result<Self> {
         Ok(Self {
-            api_key: command
-                .openai_api_key
-                .clone()
-                .or_fail_with(|()| "OpenAI key is not specified".to_owned())?,
+            api_key: command.openai_api_key.clone().or_fail()?,
             model: command.model.clone(),
-            system: command.system.clone(),
             echo_input: command.echo_input,
         })
     }
@@ -122,26 +117,9 @@ pub struct RequestBody {
 
 impl RequestBody {
     pub fn new(chatgpt: &ChatGpt, log: &MessageLog) -> orfail::Result<Self> {
-        let mut messages = log.messages.clone();
-
-        if messages.is_empty() {
-            if let Some(system) = &chatgpt.system {
-                messages.push(Message {
-                    role: Role::System,
-                    content: system.clone(),
-                });
-            }
-        }
-
-        let mut message = String::new();
-        std::io::stdin().read_to_string(&mut message).or_fail()?;
-        messages.push(Message {
-            role: Role::User,
-            content: message.clone(),
-        });
         Ok(Self {
             model: chatgpt.model.clone(),
-            messages,
+            messages: log.messages.clone(),
         })
     }
 }

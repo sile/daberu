@@ -1,6 +1,7 @@
 use clap::Parser;
-use daberu::ChatGpt;
 use orfail::OrFail;
+
+use daberu::chat_gpt::ChatGpt;
 
 /// ChatGPT client tool that reads your message from stdin and writes the response to stdout.
 #[derive(Debug, Parser)]

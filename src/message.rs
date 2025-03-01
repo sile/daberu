@@ -16,7 +16,7 @@ pub enum Role {
     Assistant,
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default)]
 pub struct MessageLog {
     pub messages: Vec<Message>,
 }
@@ -26,10 +26,10 @@ impl MessageLog {
         let file = std::fs::File::open(&path).or_fail_with(|e| {
             format!("failed to open log file {}: {e}", path.as_ref().display())
         })?;
-        let this = serde_json::from_reader(file).or_fail_with(|e| {
+        let messages = serde_json::from_reader(file).or_fail_with(|e| {
             format!("failed to load log file {}: {e}", path.as_ref().display())
         })?;
-        Ok(this)
+        Ok(Self { messages })
     }
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> orfail::Result<()> {
@@ -41,7 +41,7 @@ impl MessageLog {
             .or_fail_with(|e| {
                 format!("failed to create log file {}: {e}", path.as_ref().display())
             })?;
-        serde_json::to_writer(file, self).or_fail_with(|e| {
+        serde_json::to_writer(file, &self.messages).or_fail_with(|e| {
             format!("failed to save log file {}: {e}", path.as_ref().display())
         })?;
         Ok(())

@@ -25,8 +25,11 @@ impl ChatGpt {
 
     // TODO: return output
     pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
-        let request = RequestBody::new(self, log).or_fail()?;
-
+        let request = serde_json::json!({
+            "model": self.model,
+            "stream": true,
+            "messages": log.messages,
+        });
         let response = ureq::post("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
             .header("Authorization", &format!("Bearer {}", self.api_key))
@@ -40,7 +43,7 @@ impl ChatGpt {
             println!("```console");
             println!(
                 "$ echo -e {:?} | daberu {}",
-                request.messages.last().or_fail()?.content.trim(),
+                log.messages.last().or_fail()?.content.trim(),
                 std::env::args().skip(1).collect::<Vec<_>>().join(" ")
             );
             println!("```");
@@ -105,21 +108,6 @@ impl ChatGpt {
         Ok(Message {
             role: Role::Assistant,
             content,
-        })
-    }
-}
-
-#[derive(Debug, serde::Serialize)]
-pub struct RequestBody {
-    model: String,
-    messages: Vec<Message>,
-}
-
-impl RequestBody {
-    pub fn new(chatgpt: &ChatGpt, log: &MessageLog) -> orfail::Result<Self> {
-        Ok(Self {
-            model: chatgpt.model.clone(),
-            messages: log.messages.clone(),
         })
     }
 }

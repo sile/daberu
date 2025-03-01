@@ -10,11 +10,10 @@ use crate::command::Command;
 #[derive(Debug)]
 pub struct ChatGpt {
     api_key: String,
-    log: Option<PathBuf>,
+    log: Option<PathBuf>, // TODO: refactor
     model: String,
     system: Option<String>,
-    verbose: bool,
-    echo_input: bool,
+    echo_input: bool, // TODO: refactor
 }
 
 impl ChatGpt {
@@ -26,16 +25,12 @@ impl ChatGpt {
             log: command.log,
             model: command.model,
             system: command.system,
-            verbose: false, // TODO: delete
             echo_input: command.echo_input,
         })
     }
 
     pub fn run(&self) -> orfail::Result<()> {
         let request = RequestBody::new(self).or_fail()?;
-        if self.verbose {
-            eprintln!("{}", serde_json::to_string_pretty(&request).or_fail()?);
-        }
 
         let response = ureq::post("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
@@ -60,11 +55,7 @@ impl ChatGpt {
             println!();
         }
 
-        let reply = if self.verbose {
-            self.handle_response(response).or_fail()?
-        } else {
-            self.handle_stream_response(response).or_fail()?
-        };
+        let reply = self.handle_stream_response(response).or_fail()?;
 
         if let Some(log) = &self.log {
             let file = std::fs::OpenOptions::new()
@@ -134,43 +125,11 @@ impl ChatGpt {
             content,
         })
     }
-
-    fn handle_response(
-        &self,
-        mut response: ureq::http::response::Response<ureq::Body>,
-    ) -> orfail::Result<Message> {
-        #[derive(Debug, serde::Deserialize)]
-        struct ResponseBody {
-            choices: Vec<Choice>,
-        }
-
-        #[derive(Debug, serde::Deserialize)]
-        struct Choice {
-            message: Message,
-            finish_reason: FinishReason,
-        }
-
-        let response_json: serde_json::Value = response.body_mut().read_json().or_fail()?;
-
-        if self.verbose {
-            eprintln!(
-                "{}",
-                serde_json::to_string_pretty(&response_json).or_fail()?
-            );
-        }
-
-        let response: ResponseBody = serde_json::from_value(response_json).or_fail()?;
-        let choice = response.choices.into_iter().next().or_fail()?;
-        choice.finish_reason.check().or_fail()?;
-        println!("{}", choice.message.content);
-        Ok(choice.message)
-    }
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct RequestBody {
     model: String,
-    stream: bool,
     messages: Vec<Message>,
 }
 
@@ -200,7 +159,6 @@ impl RequestBody {
         });
         Ok(Self {
             model: chatgpt.model.clone(),
-            stream: !chatgpt.verbose,
             messages,
         })
     }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{chat_gpt::ChatGpt, claude::Claude, message::MessageLog};
+use crate::{chat_gpt::ChatGpt, claude::Claude, gist, message::MessageLog};
 
 #[derive(Debug, clap::Args)]
 pub struct Command {
@@ -43,6 +43,12 @@ pub struct Command {
     /// System message.
     #[arg(long, value_name = "SYSTEM_MESSAGE", env = "DABERU_SYSTEM_MESSAGE")]
     pub system: Option<String>,
+
+    /// Save the output to GitHub Gist.
+    ///
+    /// If `EXISTING_GIST_ID` is specified, load the log from the Gist entry and update the entry.
+    #[arg(long, value_name = "new | EXISTING_GIST_ID")]
+    pub gist: Option<String>,
 }
 
 impl Command {
@@ -58,6 +64,9 @@ impl Command {
             .unwrap_or_default();
         if self.log.is_none() && self.oneshot_log.is_some() {
             log.messages.clear();
+        }
+        if let Some(id) = self.gist.as_ref().filter(|id| *id != "new") {
+            log = gist::load(id).or_fail()?;
         }
         if let Some(system) = &self.system {
             log.set_system_message_if_empty(system);
@@ -77,6 +86,11 @@ impl Command {
         log.messages.push(output);
         if let Some(path) = self.log_file_path() {
             log.save(path).or_fail()?;
+        }
+        match self.gist.as_ref().map(|id| id.as_str()) {
+            Some("new") => gist::create(&log).or_fail()?,
+            Some(id) => gist::update(id, &log, 0).or_fail()?,
+            None => {}
         }
 
         Ok(())

@@ -16,6 +16,17 @@ pub enum Role {
     Assistant,
 }
 
+impl Role {
+    pub fn gist_filename(self, i: usize) -> String {
+        let name = match self {
+            Role::System => "system",
+            Role::User => "user",
+            Role::Assistant => "assistant",
+        };
+        format!("{:03}_{}.md", i, name)
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct MessageLog {
     pub messages: Vec<Message>,

@@ -89,7 +89,7 @@ impl Command {
         if let Some(path) = self.log_file_path() {
             log.save(path).or_fail()?;
         }
-        match self.gist.as_ref().map(|id| id.as_str()) {
+        match self.gist.as_deref() {
             Some("new") => {
                 eprintln!();
                 gist::create(&log).or_fail()?;

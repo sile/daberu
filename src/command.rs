@@ -26,14 +26,14 @@ pub struct Command {
 
     /// Path to log file for saving conversation history. If the file already exists,
     /// its contents are included in subsequent conversations.
-    #[arg(long)]
+    #[arg(long, value_name = "PATH")]
     pub log: Option<PathBuf>,
 
     /// Specifies a path for a "one-shot" conversation log file which
     /// will overwrite any existing file content upon opening.
     ///
     /// If `--log` is specified, this option will be ignored.
-    #[arg(long, value_name = "DABERU_ONESHOT_LOG_PATH")]
+    #[arg(long, value_name = "PATH", env = "DABERU_ONESHOT_LOG_PATH")]
     pub oneshot_log: Option<PathBuf>,
 
     /// Model name.

@@ -25,9 +25,8 @@ pub struct Command {
     pub anthropic_api_key: Option<String>,
 
     /// Log file path to save the conversation history. If the file already exists, the history will be considered in the next conversation.
-    // TODO: Add env (DABERU_LOG_PATH)
     // TODO: --truncate_log
-    #[arg(long, value_name = "LOG_FILE_PATH")]
+    #[arg(long, value_name = "DABERU_LOG_PATH")]
     pub log: Option<PathBuf>,
 
     /// Model name.

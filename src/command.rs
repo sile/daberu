@@ -38,10 +38,6 @@ pub struct Command {
     #[arg(long, value_name = "SYSTEM_MESSAGE", env = "DABERU_SYSTEM_MESSAGE")]
     pub system: Option<String>,
 
-    /// Max tokens.
-    #[arg(short = 't', long, env = "DABERU_MAX_TOKENS")]
-    pub max_tokens: Option<u32>,
-
     // TODO: rename to "markdown"
     #[arg(short, long)]
     pub echo_input: bool,

@@ -68,7 +68,7 @@ impl MessageLog {
 
     pub fn strip_system_message(&self) -> (Self, Option<String>) {
         if matches!(
-            self.messages.get(0),
+            self.messages.first(),
             Some(Message {
                 role: Role::System,
                 ..

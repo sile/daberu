@@ -2,19 +2,23 @@ use std::{io::Write, process::Stdio};
 
 use orfail::OrFail;
 
-use crate::message::MessageLog;
+use crate::message::{Message, MessageLog, Role};
 
 pub fn load(id: &str) -> orfail::Result<MessageLog> {
-    //     > gh gist view --files ID
-    // bar.md
-    // gistfile0.txt
-    // new.md
-    todo!()
+    let output = call(&["gist", "view", "--files", id]).or_fail()?;
+    let mut filenames = output.lines().collect::<Vec<_>>();
+    filenames.sort();
+
+    let mut log = MessageLog::default();
+    for (i, filename) in filenames.into_iter().enumerate() {
+        let role = Role::from_gist_filename(filename, i).or_fail()?;
+        let content = call(&["gist", "view", "--raw", "--filename", filename, id]).or_fail()?;
+        log.messages.push(Message { role, content });
+    }
+    Ok(log)
 }
 
 pub fn create(log: &MessageLog) -> orfail::Result<()> {
-    println!();
-
     let message = log.messages.first().or_fail()?;
     let url = call_with_input(
         &[
@@ -29,7 +33,7 @@ pub fn create(log: &MessageLog) -> orfail::Result<()> {
         &message.content,
     )
     .or_fail()?;
-    println!("{}", url.trim());
+    eprintln!("{}", url.trim());
 
     update(url.trim(), log, 1).or_fail()?;
     Ok(())
@@ -37,29 +41,27 @@ pub fn create(log: &MessageLog) -> orfail::Result<()> {
 
 pub fn update(id: &str, log: &MessageLog, offset: usize) -> orfail::Result<()> {
     for (i, message) in log.messages.iter().enumerate().skip(offset) {
+        let filename = message.role.gist_filename(i);
+        eprint!("Uploading gist {filename} ... ");
         call_with_input(
-            &[
-                "gist",
-                "edit",
-                id,
-                "-",
-                "--add",
-                &message.role.gist_filename(i),
-            ],
+            &["gist", "edit", id, "-", "--add", &filename],
             &message.content,
         )
         .or_fail()?;
+        eprintln!("done");
     }
     Ok(())
 }
 
-fn call(args: &[&str]) -> orfail::Result<()> {
-    std::process::Command::new("gh")
+fn call(args: &[&str]) -> orfail::Result<String> {
+    let output = std::process::Command::new("gh")
         .args(args)
-        .status()
-        .is_ok_and(|s| s.success())
+        .stderr(Stdio::inherit())
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
         .or_fail_with(|()| format!("failed to execute `$ gh gist {}`", args.join(" ")))?;
-    Ok(())
+    Ok(output)
 }
 
 fn call_with_input(args: &[&str], input: &str) -> orfail::Result<String> {
@@ -77,9 +79,8 @@ fn call_with_input(args: &[&str], input: &str) -> orfail::Result<String> {
 
     let output = child
         .wait_with_output()
-        .map_err(|_| ())
-        .and_then(|output| String::from_utf8(output.stdout).map_err(|_| ()))
         .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
         .or_fail_with(|()| format!("failed to execute `$ gh gist {}`", args.join(" ")))?;
 
     Ok(output)

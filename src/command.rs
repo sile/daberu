@@ -55,6 +55,7 @@ impl Command {
     pub fn run(self) -> orfail::Result<()> {
         self.check_api_key().or_fail()?;
 
+        let mut gist_offset = 0;
         let mut log = self
             .log_file_path()
             .filter(|path| path.exists())
@@ -67,6 +68,7 @@ impl Command {
         }
         if let Some(id) = self.gist.as_ref().filter(|id| *id != "new") {
             log = gist::load(id).or_fail()?;
+            gist_offset = log.messages.len();
         }
         if let Some(system) = &self.system {
             log.set_system_message_if_empty(system);
@@ -88,8 +90,14 @@ impl Command {
             log.save(path).or_fail()?;
         }
         match self.gist.as_ref().map(|id| id.as_str()) {
-            Some("new") => gist::create(&log).or_fail()?,
-            Some(id) => gist::update(id, &log, 0).or_fail()?,
+            Some("new") => {
+                eprintln!();
+                gist::create(&log).or_fail()?;
+            }
+            Some(id) => {
+                eprintln!();
+                gist::update(id, &log, gist_offset).or_fail()?;
+            }
             None => {}
         }
 

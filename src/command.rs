@@ -66,7 +66,7 @@ impl Command {
 
         let output = if self.model.starts_with("gpt") {
             let c = ChatGpt::new(&self).or_fail()?;
-            c.run(&log).or_fail()?
+            c.run(&self.output_header(&log), &log).or_fail()?
         } else if self.model.starts_with("claude") {
             todo!();
         } else {
@@ -79,6 +79,29 @@ impl Command {
         }
 
         Ok(())
+    }
+
+    fn output_header(&self, log: &MessageLog) -> String {
+        if !self.echo_input {
+            return String::new();
+        }
+
+        let mut s = String::new();
+        s.push_str("Input\n");
+        s.push_str("=====\n");
+        s.push('\n');
+        s.push_str("```console\n");
+        s.push_str(&format!(
+            "$ echo -e {:?} | daberu {}",
+            log.messages.last().expect("infallible").content.trim(),
+            std::env::args().skip(1).collect::<Vec<_>>().join(" ")
+        ));
+        s.push_str("```\n");
+        s.push('\n');
+        s.push_str("Output\n");
+        s.push_str("======\n");
+        s.push('\n');
+        s
     }
 
     fn check_api_key(&self) -> orfail::Result<()> {

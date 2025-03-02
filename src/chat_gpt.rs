@@ -11,7 +11,6 @@ use crate::{
 pub struct ChatGpt {
     api_key: String,
     model: String,
-    echo_input: bool, // TODO: refactor
 }
 
 impl ChatGpt {
@@ -19,12 +18,10 @@ impl ChatGpt {
         Ok(Self {
             api_key: command.openai_api_key.clone().or_fail()?,
             model: command.model.clone(),
-            echo_input: command.echo_input,
         })
     }
 
-    // TODO: return output
-    pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
+    pub fn run(&self, output_header: &str, log: &MessageLog) -> orfail::Result<Message> {
         let request = serde_json::json!({
             "model": self.model,
             "stream": true,
@@ -36,22 +33,7 @@ impl ChatGpt {
             .send_json(&request)
             .or_fail()?;
 
-        if self.echo_input {
-            println!("Input");
-            println!("=====");
-            println!();
-            println!("```console");
-            println!(
-                "$ echo -e {:?} | daberu {}",
-                log.messages.last().or_fail()?.content.trim(),
-                std::env::args().skip(1).collect::<Vec<_>>().join(" ")
-            );
-            println!("```");
-            println!();
-            println!("Output");
-            println!("======");
-            println!();
-        }
+        print!("{output_header}");
 
         let reply = self.handle_stream_response(response).or_fail()?;
         Ok(reply)

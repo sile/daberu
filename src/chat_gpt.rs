@@ -21,7 +21,7 @@ impl ChatGpt {
         })
     }
 
-    pub fn run(&self, output_header: &str, log: &MessageLog) -> orfail::Result<Message> {
+    pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
         let request = serde_json::json!({
             "model": self.model,
             "stream": true,
@@ -32,9 +32,6 @@ impl ChatGpt {
             .header("Authorization", &format!("Bearer {}", self.api_key))
             .send_json(&request)
             .or_fail()?;
-
-        print!("{output_header}");
-
         let reply = self.handle_stream_response(response).or_fail()?;
         Ok(reply)
     }

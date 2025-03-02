@@ -16,6 +16,31 @@ pub enum Role {
     Assistant,
 }
 
+impl Role {
+    pub fn gist_filename(self, i: usize) -> String {
+        let name = match self {
+            Role::System => "system",
+            Role::User => "user",
+            Role::Assistant => "assistant",
+        };
+        format!("{:03}_{}.md", i, name)
+    }
+
+    pub fn from_gist_filename(filename: &str, i: usize) -> orfail::Result<Self> {
+        let prefix = format!("{:03}_", i);
+        (filename.starts_with(&prefix) && filename.ends_with(".md"))
+            .or_fail_with(|()| format!("unexpected gist filename: {filename}"))?;
+        match &filename[4..filename.len() - 3] {
+            "system" => Ok(Self::System),
+            "user" => Ok(Self::User),
+            "assistant" => Ok(Self::Assistant),
+            _ => Err(orfail::Failure::new(format!(
+                "unexpected gist filename: {filename}"
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct MessageLog {
     pub messages: Vec<Message>,

@@ -56,23 +56,6 @@ impl Claude {
         &self,
         response: ureq::http::response::Response<ureq::Body>,
     ) -> orfail::Result<Message> {
-        #[derive(Debug, serde::Deserialize)]
-        struct Data {
-            choices: Vec<Choice>,
-        }
-
-        #[derive(Debug, serde::Deserialize)]
-        struct Choice {
-            delta: Delta,
-            finish_reason: Option<FinishReason>,
-        }
-
-        #[derive(Debug, serde::Deserialize)]
-        struct Delta {
-            #[serde(default)]
-            content: String,
-        }
-
         let mut content = String::new();
         let reader = BufReader::new(response.into_body().into_reader());
         for line in reader.lines() {
@@ -89,14 +72,26 @@ impl Claude {
 
             let data: Data = serde_json::from_str(&line["data: ".len()..])
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
-            (!data.choices.is_empty()).or_fail()?;
-            if let Some(reason) = data.choices[0].finish_reason {
-                reason.check().or_fail()?;
+            match data {
+                Data::MessageStart { stop_reason } | Data::MessageDelta { stop_reason } => {
+                    if let Some(reason) = stop_reason {
+                        (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
+                    }
+                }
+                Data::MessageStop {} => {}
+                Data::Ping => {}
+                Data::ContentBlockStart { content_block } => {
+                    content.push_str(&content_block.text);
+                    print!("{}", content_block.text);
+                    std::io::stdout().flush().or_fail()?;
+                }
+                Data::ContentBlockDelta { delta } => {
+                    content.push_str(&delta.text);
+                    print!("{}", delta.text);
+                    std::io::stdout().flush().or_fail()?;
+                }
+                Data::ContentBlockStop {} => {}
             }
-
-            content.push_str(&data.choices[0].delta.content);
-            print!("{}", data.choices[0].delta.content);
-            std::io::stdout().flush().or_fail()?;
         }
         println!();
 
@@ -107,24 +102,24 @@ impl Claude {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum FinishReason {
-    Stop,
-    Length,
-    ContentFilter,
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "snake_case", tag = "type")]
+enum Data {
+    MessageStart { stop_reason: Option<String> },
+    MessageDelta { stop_reason: Option<String> },
+    MessageStop {},
+    ContentBlockStart { content_block: ContentBlock },
+    ContentBlockDelta { delta: Delta },
+    ContentBlockStop {},
+    Ping,
 }
 
-impl FinishReason {
-    pub fn check(self) -> orfail::Result<()> {
-        match self {
-            Self::Stop => Ok(()),
-            Self::Length => Err(orfail::Failure::new(
-                "Incomplete model output due to max_tokens parameter or token limit",
-            )),
-            Self::ContentFilter => Err(orfail::Failure::new(
-                "Omitted content due to a flag from our content filters",
-            )),
-        }
-    }
+#[derive(Debug, serde::Deserialize)]
+struct ContentBlock {
+    text: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct Delta {
+    text: String,
 }

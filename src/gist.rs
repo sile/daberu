@@ -60,7 +60,7 @@ fn call(args: &[&str]) -> orfail::Result<String> {
         .output()
         .ok()
         .and_then(|output| String::from_utf8(output.stdout).ok())
-        .or_fail_with(|()| format!("failed to execute `$ gh gist {}`", args.join(" ")))?;
+        .or_fail_with(|()| format!("failed to execute `$ gh {}`", args.join(" ")))?;
     Ok(output)
 }
 
@@ -71,7 +71,7 @@ fn call_with_input(args: &[&str], input: &str) -> orfail::Result<String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()
-        .or_fail_with(|e| format!("Failed to execute `$ gh gist {}`: {e}", args.join(" ")))?;
+        .or_fail_with(|e| format!("Failed to execute `$ gh {}`: {e}", args.join(" ")))?;
 
     let mut stdin = child.stdin.take().or_fail()?;
     stdin.write_all(input.as_bytes()).or_fail()?;
@@ -81,7 +81,7 @@ fn call_with_input(args: &[&str], input: &str) -> orfail::Result<String> {
         .wait_with_output()
         .ok()
         .and_then(|output| String::from_utf8(output.stdout).ok())
-        .or_fail_with(|()| format!("failed to execute `$ gh gist {}`", args.join(" ")))?;
+        .or_fail_with(|()| format!("failed to execute `$ gh {}`", args.join(" ")))?;
 
     Ok(output)
 }

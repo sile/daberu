@@ -43,10 +43,6 @@ pub struct Command {
     /// System message.
     #[arg(long, value_name = "SYSTEM_MESSAGE", env = "DABERU_SYSTEM_MESSAGE")]
     pub system: Option<String>,
-
-    // TODO: rename to "markdown"
-    #[arg(short, long)]
-    pub echo_input: bool,
 }
 
 impl Command {
@@ -70,10 +66,10 @@ impl Command {
 
         let output = if self.model.starts_with("gpt") {
             let c = ChatGpt::new(&self).or_fail()?;
-            c.run(&self.output_header(&log), &log).or_fail()?
+            c.run(&log).or_fail()?
         } else if self.model.starts_with("claude") {
             let c = Claude::new(&self).or_fail()?;
-            c.run(&self.output_header(&log), &log).or_fail()?
+            c.run(&log).or_fail()?
         } else {
             unreachable!()
         };
@@ -88,29 +84,6 @@ impl Command {
 
     fn log_file_path(&self) -> Option<&PathBuf> {
         self.log.as_ref().or(self.oneshot_log.as_ref())
-    }
-
-    fn output_header(&self, log: &MessageLog) -> String {
-        if !self.echo_input {
-            return String::new();
-        }
-
-        let mut s = String::new();
-        s.push_str("Input\n");
-        s.push_str("=====\n");
-        s.push('\n');
-        s.push_str("```console\n");
-        s.push_str(&format!(
-            "$ echo -e {:?} | daberu {}",
-            log.messages.last().expect("infallible").content.trim(),
-            std::env::args().skip(1).collect::<Vec<_>>().join(" ")
-        ));
-        s.push_str("```\n");
-        s.push('\n');
-        s.push_str("Output\n");
-        s.push_str("======\n");
-        s.push('\n');
-        s
     }
 
     fn check_api_key(&self) -> orfail::Result<()> {

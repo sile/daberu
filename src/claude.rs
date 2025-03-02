@@ -25,7 +25,7 @@ impl Claude {
         })
     }
 
-    pub fn run(&self, output_header: &str, log: &MessageLog) -> orfail::Result<Message> {
+    pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
         let (log, system_message) = log.strip_system_message();
         let mut request = serde_json::json!({
             "model": self.model,
@@ -46,8 +46,6 @@ impl Claude {
             .header("anthropic-version", ANTHROPIC_VERSION)
             .send_json(&request)
             .or_fail()?;
-        print!("{output_header}");
-
         let reply = self.handle_stream_response(response).or_fail()?;
         Ok(reply)
     }

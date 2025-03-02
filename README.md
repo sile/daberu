@@ -4,24 +4,35 @@ daberu
 [![daberu](https://img.shields.io/crates/v/daberu.svg)](https://crates.io/crates/daberu)
 ![License](https://img.shields.io/crates/l/daberu)
 
-A simple command-line tool for conversing with ChatGPT.
+A simple command-line tool for conversing with ChatGPT / Claude.
 
 "daberu" is a Japanese translation of "chatting".
 
 ```console
 $ daberu -h
-ChatGPT client tool that reads your message from stdin and writes the response to stdout
+ChatGPT / Claude client tool that reads your message from stdin and writes the response to stdout
 
-Usage: daberu [OPTIONS] --api-key <OPENAI_API_KEY>
+Usage: daberu [OPTIONS]
 
 Options:
-      --api-key <OPENAI_API_KEY>  OpenAI API key [env: OPENAI_API_KEY]
-      --log <LOG_FILE_PATH>       Log file path to save the conversation history. If the file already exists, the history will be considered in the next conversation
-      --model <MODEL>             ChatGPT model name [env: CHATGPT_MODEL=] [default: gpt-4o] [possible values: gpt-4, gpt-4o, gpt-4-0314, gpt-4-32k, gpt-4-32k-0314, gpt-3.5-turbo, gpt-3.5-turbo-0301]
-      --system <SYSTEM_MESSAGE>   If specified, the system role message will be added to the beginning of the conversation [env: CHATGPT_SYSTEM_MESSAGE=]
-      --verbose                   If specified, HTTP request and response body JSONs are printed to stderr
-  -h, --help                      Print help
-  -V, --version                   Print version
+      --openai-api-key <OPENAI_API_KEY>
+          OpenAI API key [env: OPENAI_API_KEY]
+      --anthropic-api-key <ANTHROPIC_API_KEY>
+          Anthropic API key [env: ANTHROPIC_API_KEY]
+      --log <LOG>
+          Path to log file for saving conversation history. If the file already exists, its contents are included in subsequent conversations
+      --oneshot-log <DABERU_ONESHOT_LOG_PATH>
+          Specifies a path for a "one-shot" conversation log file which will overwrite any existing file content upon opening
+      --model <MODEL>
+          Model name [env: DABERU_MODEL=] [default: gpt-4o]
+      --system <SYSTEM_MESSAGE>
+          System message [env: DABERU_SYSTEM_MESSAGE=]
+      --gist <new | EXISTING_GIST_ID>
+          Save the output to GitHub Gist
+  -h, --help
+          Print help (see more with '--help')
+  -V, --version
+          Print version
 ```
 
 Installation
@@ -29,7 +40,10 @@ Installation
 
 ```cosnole
 $ cargo install daberu
+
 $ export OPENAI_API_KEY="YOUR API KEY"
+// or
+$ export ANTHROPIC_API_KEY="YOUR API KEY"
 ```
 
 Usage Examle
@@ -96,5 +110,8 @@ $ git diff d8be79e..cb34a00 | daberu --system 'Please write consice changelog en
 References
 ----------
 
-- [API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat)
-- [Chat completion - OpenAI API](https://platform.openai.com/docs/guides/chat)
+- ChatGPT:
+  - [API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/chat)
+  - [Chat completion - OpenAI API](https://platform.openai.com/docs/guides/chat)
+- Claude:
+  - [API](https://www.anthropic.com/api)

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{chat_gpt::ChatGpt, message::MessageLog};
+use crate::{chat_gpt::ChatGpt, claude::Claude, message::MessageLog};
 
 #[derive(Debug, clap::Args)]
 pub struct Command {
@@ -64,7 +64,8 @@ impl Command {
             let c = ChatGpt::new(&self).or_fail()?;
             c.run(&self.output_header(&log), &log).or_fail()?
         } else if self.model.starts_with("claude") {
-            todo!();
+            let c = Claude::new(&self).or_fail()?;
+            c.run(&self.output_header(&log), &log).or_fail()?
         } else {
             unreachable!()
         };
@@ -110,6 +111,7 @@ impl Command {
                 .is_some()
                 .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;
         } else {
+            return Err(orfail::Failure::new("unknown model"));
         }
         Ok(())
     }

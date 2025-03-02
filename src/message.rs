@@ -16,7 +16,7 @@ pub enum Role {
     Assistant,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MessageLog {
     pub messages: Vec<Message>,
 }
@@ -63,6 +63,25 @@ impl MessageLog {
                 role: Role::System,
                 content: system.to_owned(),
             });
+        }
+    }
+
+    pub fn strip_system_message(&self) -> (Self, Option<String>) {
+        if matches!(
+            self.messages.get(0),
+            Some(Message {
+                role: Role::System,
+                ..
+            })
+        ) {
+            (
+                Self {
+                    messages: self.messages[1..].to_vec(),
+                },
+                Some(self.messages[0].content.clone()),
+            )
+        } else {
+            (self.clone(), None)
         }
     }
 }

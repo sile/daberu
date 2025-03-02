@@ -96,7 +96,7 @@ impl ChatGpt {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum FinishReason {
+enum FinishReason {
     Stop,
     Length,
     ContentFilter,

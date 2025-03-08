@@ -11,9 +11,13 @@ pub fn load(id: &str) -> orfail::Result<MessageLog> {
 
     let mut log = MessageLog::default();
     for (i, filename) in filenames.into_iter().enumerate() {
-        let role = Role::from_gist_filename(filename, i).or_fail()?;
+        let (role, model) = Role::from_gist_filename(filename, i).or_fail()?;
         let content = call(&["gist", "view", "--raw", "--filename", filename, id]).or_fail()?;
-        log.messages.push(Message { role, content });
+        log.messages.push(Message {
+            role,
+            content,
+            model,
+        });
     }
     Ok(log)
 }
@@ -27,7 +31,7 @@ pub fn create(log: &MessageLog) -> orfail::Result<()> {
             "--desc",
             "daberu log",
             "--filename",
-            &message.role.gist_filename(0),
+            &message.role.gist_filename(0, message.model.as_ref()),
             "-",
         ],
         &message.content,
@@ -41,7 +45,7 @@ pub fn create(log: &MessageLog) -> orfail::Result<()> {
 
 pub fn update(id: &str, log: &MessageLog, offset: usize) -> orfail::Result<()> {
     for (i, message) in log.messages.iter().enumerate().skip(offset) {
-        let filename = message.role.gist_filename(i);
+        let filename = message.role.gist_filename(i, message.model.as_ref());
         eprint!("Uploading gist {filename} ... ");
         call_with_input(
             &["gist", "edit", id, "-", "--add", &filename],

@@ -6,6 +6,8 @@ use orfail::OrFail;
 pub struct Message {
     pub role: Role,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -17,23 +19,31 @@ pub enum Role {
 }
 
 impl Role {
-    pub fn gist_filename(self, i: usize) -> String {
+    pub fn gist_filename(self, i: usize, model: Option<&String>) -> String {
         let name = match self {
             Role::System => "system",
             Role::User => "user",
             Role::Assistant => "assistant",
         };
-        format!("{:03}_{}.md", i, name)
+        if let Some(model) = model {
+            format!("{:03}_{}_{}.md", i, name, model)
+        } else {
+            format!("{:03}_{}.md", i, name)
+        }
     }
 
-    pub fn from_gist_filename(filename: &str, i: usize) -> orfail::Result<Self> {
+    pub fn from_gist_filename(filename: &str, i: usize) -> orfail::Result<(Self, Option<String>)> {
         let prefix = format!("{:03}_", i);
         (filename.starts_with(&prefix) && filename.ends_with(".md"))
             .or_fail_with(|()| format!("unexpected gist filename: {filename}"))?;
-        match &filename[4..filename.len() - 3] {
-            "system" => Ok(Self::System),
-            "user" => Ok(Self::User),
-            "assistant" => Ok(Self::Assistant),
+        let mut tokens = filename[4..filename.len() - 3].splitn(2, '_');
+        match tokens.next().expect("infallible") {
+            "system" => Ok((Self::System, None)),
+            "user" => Ok((Self::User, None)),
+            "assistant" => {
+                let model = tokens.next().map(|model| model.to_owned());
+                Ok((Self::Assistant, model))
+            }
             _ => Err(orfail::Failure::new(format!(
                 "unexpected gist filename: {filename}"
             ))),
@@ -78,6 +88,7 @@ impl MessageLog {
         self.messages.push(Message {
             role: Role::User,
             content: input,
+            model: None,
         });
         Ok(())
     }
@@ -87,6 +98,7 @@ impl MessageLog {
             self.messages.push(Message {
                 role: Role::System,
                 content: system.to_owned(),
+                model: None,
             });
         }
     }

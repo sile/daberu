@@ -101,6 +101,7 @@ impl Claude {
         Ok(Message {
             role: Role::Assistant,
             content,
+            model: Some(self.model.clone()),
         })
     }
 }

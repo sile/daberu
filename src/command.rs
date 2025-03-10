@@ -77,9 +77,11 @@ impl Command {
 
         let output = if self.model.starts_with("gpt") {
             let c = ChatGpt::new(&self).or_fail()?;
+            let log = log.strip_model_name();
             c.run(&log).or_fail()?
         } else if self.model.starts_with("claude") {
             let c = Claude::new(&self).or_fail()?;
+            let log = log.strip_model_name();
             c.run(&log).or_fail()?
         } else {
             unreachable!()

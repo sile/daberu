@@ -103,6 +103,20 @@ impl MessageLog {
         }
     }
 
+    pub fn strip_model_name(&self) -> Self {
+        Self {
+            messages: self
+                .messages
+                .iter()
+                .cloned()
+                .map(|mut m| {
+                    m.model = None;
+                    m
+                })
+                .collect(),
+        }
+    }
+
     pub fn strip_system_message(&self) -> (Self, Option<String>) {
         if matches!(
             self.messages.first(),

@@ -85,6 +85,7 @@ impl MessageLog {
     pub fn read_input(&mut self) -> orfail::Result<()> {
         let mut input = String::new();
         std::io::stdin().read_to_string(&mut input).or_fail()?;
+        (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
         self.messages.push(Message {
             role: Role::User,
             content: input,

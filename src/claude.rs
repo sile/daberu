@@ -89,9 +89,9 @@ impl Claude {
                     std::io::stdout().flush().or_fail()?;
                 }
                 Data::ContentBlockStop {} => {}
-                Data::OverloadedError { message, details } => {
+                Data::Error { error } => {
                     return Err(orfail::Failure::new(format!(
-                        "Claude API overloaded error: message={message}, details={details}"
+                        "Claude API error: reason={error}"
                     )))
                 }
             }
@@ -109,25 +109,14 @@ impl Claude {
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "snake_case", tag = "type")]
 enum Data {
-    MessageStart {
-        stop_reason: Option<String>,
-    },
-    MessageDelta {
-        stop_reason: Option<String>,
-    },
+    MessageStart { stop_reason: Option<String> },
+    MessageDelta { stop_reason: Option<String> },
     MessageStop {},
-    ContentBlockStart {
-        content_block: ContentBlock,
-    },
-    ContentBlockDelta {
-        delta: Delta,
-    },
+    ContentBlockStart { content_block: ContentBlock },
+    ContentBlockDelta { delta: Delta },
     ContentBlockStop {},
     Ping,
-    OverloadedError {
-        message: String,
-        details: serde_json::Value,
-    },
+    Error { error: serde_json::Value },
 }
 
 #[derive(Debug, serde::Deserialize)]

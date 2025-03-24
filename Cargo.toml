@@ -4,14 +4,14 @@ version = "0.2.2"
 edition = "2024"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 license = "MIT OR Apache-2.0"
-description = "A simple command-line tool for conversing with ChatGPT / Claude"
+description = "ChatGPT / Claude client tool that reads your message from stdin and writes the response to stdout"
 homepage = "https://github.com/sile/daberu"
 repository = "https://github.com/sile/daberu"
 readme = "README.md"
 categories = ["command-line-utilities"]
 
 [dependencies]
-clap = { version = "4.3.0", features = ["derive", "env"] }
+noargs = "0.0.1"
 orfail = "1"
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"

@@ -92,7 +92,7 @@ impl Claude {
                 Data::Error { error } => {
                     return Err(orfail::Failure::new(format!(
                         "Claude API error: reason={error}"
-                    )))
+                    )));
                 }
             }
         }

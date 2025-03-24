@@ -8,6 +8,7 @@ description = "A simple command-line tool for conversing with ChatGPT / Claude"
 homepage = "https://github.com/sile/daberu"
 repository = "https://github.com/sile/daberu"
 readme = "README.md"
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4.3.0", features = ["derive", "env"] }

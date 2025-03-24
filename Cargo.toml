@@ -1,7 +1,7 @@
 [package]
 name = "daberu"
 version = "0.2.2"
-edition = "2021"
+edition = "2024"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A simple command-line tool for conversing with ChatGPT / Claude"

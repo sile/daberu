@@ -6,48 +6,12 @@ use crate::{chat_gpt::ChatGpt, claude::Claude, gist, message::MessageLog};
 
 #[derive(Debug)]
 pub struct Command {
-    /// OpenAI API key.
-    // #[arg(
-    //     long,
-    //     value_name = "OPENAI_API_KEY",
-    //     env = "OPENAI_API_KEY",
-    //     hide_env_values = true
-    // )]
     pub openai_api_key: Option<String>,
-
-    /// Anthropic API key.
-    // #[arg(
-    //     long,
-    //     value_name = "ANTHROPIC_API_KEY",
-    //     env = "ANTHROPIC_API_KEY",
-    //     hide_env_values = true
-    // )]
     pub anthropic_api_key: Option<String>,
-
-    /// Path to log file for saving conversation history. If the file already exists,
-    /// its contents are included in subsequent conversations.
-    //#[arg(long, value_name = "PATH")]
     pub log: Option<PathBuf>,
-
-    /// Specifies a path for a "one-shot" conversation log file which
-    /// will overwrite any existing file content upon opening.
-    ///
-    /// If `--log` is specified, this option will be ignored.
-    //#[arg(long, value_name = "PATH", env = "DABERU_ONESHOT_LOG_PATH")]
     pub oneshot_log: Option<PathBuf>,
-
-    /// Model name.
-    //#[arg(long, env = "DABERU_MODEL", default_value = "gpt-4o")]
     pub model: String,
-
-    /// System message.
-    //#[arg(long, value_name = "SYSTEM_MESSAGE", env = "DABERU_SYSTEM_MESSAGE")]
     pub system: Option<String>,
-
-    /// Save the output to GitHub Gist.
-    ///
-    /// If `EXISTING_GIST_ID` is specified, load the log from the Gist entry and update the entry.
-    //#[arg(long, value_name = "new | EXISTING_GIST_ID")]
     pub gist: Option<String>,
 }
 

@@ -18,13 +18,13 @@ fn main() -> noargs::Result<()> {
         openai_api_key: noargs::opt("openai-api-key")
             .ty("STRING")
             .env("OPENAI_API_KEY")
-            .doc("OpenAI API key")
+            .doc("OpenAI API key.")
             .take(&mut args)
             .parse_if_present()?,
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")
             .env("ANTHROPIC_API_KEY")
-            .doc("Anthropic API key")
+            .doc("Anthropic API key.")
             .take(&mut args)
             .parse_if_present()?,
         log: noargs::opt("log")
@@ -51,20 +51,20 @@ fn main() -> noargs::Result<()> {
             .ty("STRING")
             .default("gpt-4o")
             .env("DABERU_MODEL")
-            .doc("Model name")
+            .doc("Model name.")
             .take(&mut args)
             .parse()?,
         system: noargs::opt("system")
             .short('s')
             .ty("STRING")
-            .doc("System message")
+            .doc("System message.")
             .take(&mut args)
             .parse_if_present()?,
         gist: noargs::opt("gist")
             .ty("new | EXISTING_GIST_ID")
             .doc(concat!(
                 "Save the output to GitHub Gist.\n",
-                "If `EXISTING_GIST_ID` is specified,\n,",
+                "If `EXISTING_GIST_ID` is specified,\n",
                 "load the log from the Gist entry and update the entry."
             ))
             .take(&mut args)

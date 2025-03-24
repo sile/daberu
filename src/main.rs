@@ -1,3 +1,4 @@
+use daberu::command::Command;
 use orfail::OrFail;
 
 fn main() -> noargs::Result<()> {
@@ -18,6 +19,15 @@ fn main() -> noargs::Result<()> {
         return Ok(());
     }
 
-    //args.command.run().or_fail()?;
+    let command = Command {
+        openai_api_key: todo!(),
+        anthropic_api_key: todo!(),
+        log: todo!(),
+        oneshot_log: todo!(),
+        model: todo!(),
+        system: todo!(),
+        gist: todo!(),
+    };
+    command.run().or_fail()?;
     Ok(())
 }

@@ -41,15 +41,12 @@ impl Command {
 
         for (i, model) in self.models.iter().enumerate() {
             let result = if model.starts_with("gpt") || model.starts_with("openai:") {
-                let model = model.strip_prefix("openai:").unwrap_or(&model).to_owned();
+                let model = model.strip_prefix("openai:").unwrap_or(model).to_owned();
                 let c = ChatGpt::new(&self, model).or_fail()?;
                 let log = log.strip_model_name();
                 c.run(&log).or_fail()
             } else if model.starts_with("claude") || model.starts_with("anthropic:") {
-                let model = model
-                    .strip_prefix("anthropic:")
-                    .unwrap_or(&model)
-                    .to_owned();
+                let model = model.strip_prefix("anthropic:").unwrap_or(model).to_owned();
                 let c = Claude::new(&self, model).or_fail()?;
                 let log = log.strip_model_name();
                 c.run(&log).or_fail()

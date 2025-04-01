@@ -48,7 +48,7 @@ fn main() -> noargs::Result<()> {
             .parse_if_present()?,
         model: noargs::opt("model")
             .short('m')
-            .ty("STRING")
+            .ty("[PROVIDER:]MODEL_NAME")
             .default("gpt-4o")
             .env("DABERU_MODEL")
             .doc("Model name")

@@ -16,7 +16,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn run(self) -> orfail::Result<()> {
+    pub fn run(mut self) -> orfail::Result<()> {
         self.check_api_key().or_fail()?;
 
         let mut gist_offset = 0;
@@ -39,11 +39,21 @@ impl Command {
         }
         log.read_input().or_fail()?;
 
-        let output = if self.model.starts_with("gpt") {
+        let output = if self.model.starts_with("gpt") || self.model.starts_with("openai:") {
+            self.model = self
+                .model
+                .strip_prefix("openai:")
+                .unwrap_or(&self.model)
+                .to_owned();
             let c = ChatGpt::new(&self).or_fail()?;
             let log = log.strip_model_name();
             c.run(&log).or_fail()?
-        } else if self.model.starts_with("claude") {
+        } else if self.model.starts_with("claude") || self.model.starts_with("anthropic:") {
+            self.model = self
+                .model
+                .strip_prefix("anthropic:")
+                .unwrap_or(&self.model)
+                .to_owned();
             let c = Claude::new(&self).or_fail()?;
             let log = log.strip_model_name();
             c.run(&log).or_fail()?
@@ -75,11 +85,11 @@ impl Command {
     }
 
     fn check_api_key(&self) -> orfail::Result<()> {
-        if self.model.starts_with("gpt") {
+        if self.model.starts_with("gpt") || self.model.starts_with("openai:") {
             self.openai_api_key
                 .is_some()
                 .or_fail_with(|()| "OpenAI API key is not specified".to_owned())?;
-        } else if self.model.starts_with("claude") {
+        } else if self.model.starts_with("claude") || self.model.starts_with("anthropic:") {
             self.anthropic_api_key
                 .is_some()
                 .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;

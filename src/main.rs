@@ -46,14 +46,17 @@ fn main() -> noargs::Result<()> {
             ))
             .take(&mut args)
             .parse_if_present()?,
-        model: noargs::opt("model")
+        models: noargs::opt("model")
             .short('m')
             .ty("[PROVIDER:]MODEL_NAME")
             .default("gpt-4o")
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)
-            .parse()?,
+            .parse::<String>()?
+            .split(',')
+            .map(String::from)
+            .collect(),
         system: noargs::opt("system")
             .short('s')
             .ty("STRING")

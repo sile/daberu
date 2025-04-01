@@ -10,13 +10,13 @@ pub struct Command {
     pub anthropic_api_key: Option<String>,
     pub log: Option<PathBuf>,
     pub oneshot_log: Option<PathBuf>,
-    pub model: String,
+    pub models: Vec<String>,
     pub system: Option<String>,
     pub gist: Option<String>,
 }
 
 impl Command {
-    pub fn run(mut self) -> orfail::Result<()> {
+    pub fn run(self) -> orfail::Result<()> {
         self.check_api_key().or_fail()?;
 
         let mut gist_offset = 0;
@@ -39,29 +39,34 @@ impl Command {
         }
         log.read_input().or_fail()?;
 
-        let output = if self.model.starts_with("gpt") || self.model.starts_with("openai:") {
-            self.model = self
-                .model
-                .strip_prefix("openai:")
-                .unwrap_or(&self.model)
-                .to_owned();
-            let c = ChatGpt::new(&self).or_fail()?;
-            let log = log.strip_model_name();
-            c.run(&log).or_fail()?
-        } else if self.model.starts_with("claude") || self.model.starts_with("anthropic:") {
-            self.model = self
-                .model
-                .strip_prefix("anthropic:")
-                .unwrap_or(&self.model)
-                .to_owned();
-            let c = Claude::new(&self).or_fail()?;
-            let log = log.strip_model_name();
-            c.run(&log).or_fail()?
-        } else {
-            unreachable!()
-        };
+        for (i, model) in self.models.iter().enumerate() {
+            let result = if model.starts_with("gpt") || model.starts_with("openai:") {
+                let model = model.strip_prefix("openai:").unwrap_or(model).to_owned();
+                let c = ChatGpt::new(&self, model).or_fail()?;
+                let log = log.strip_model_name();
+                c.run(&log).or_fail()
+            } else if model.starts_with("claude") || model.starts_with("anthropic:") {
+                let model = model.strip_prefix("anthropic:").unwrap_or(model).to_owned();
+                let c = Claude::new(&self, model).or_fail()?;
+                let log = log.strip_model_name();
+                c.run(&log).or_fail()
+            } else {
+                unreachable!()
+            };
+            match result {
+                Ok(output) => {
+                    log.messages.push(output);
+                    break;
+                }
+                Err(e) if i + 1 == self.models.len() => {
+                    return Err(e);
+                }
+                Err(e) => {
+                    eprintln!("[WARNING] {model}: {e}");
+                }
+            }
+        }
 
-        log.messages.push(output);
         if let Some(path) = self.log_file_path() {
             log.save(path).or_fail()?;
         }
@@ -85,16 +90,18 @@ impl Command {
     }
 
     fn check_api_key(&self) -> orfail::Result<()> {
-        if self.model.starts_with("gpt") || self.model.starts_with("openai:") {
-            self.openai_api_key
-                .is_some()
-                .or_fail_with(|()| "OpenAI API key is not specified".to_owned())?;
-        } else if self.model.starts_with("claude") || self.model.starts_with("anthropic:") {
-            self.anthropic_api_key
-                .is_some()
-                .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;
-        } else {
-            return Err(orfail::Failure::new("unknown model"));
+        for model in &self.models {
+            if model.starts_with("gpt") || model.starts_with("openai:") {
+                self.openai_api_key
+                    .is_some()
+                    .or_fail_with(|()| "OpenAI API key is not specified".to_owned())?;
+            } else if model.starts_with("claude") || model.starts_with("anthropic:") {
+                self.anthropic_api_key
+                    .is_some()
+                    .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;
+            } else {
+                return Err(orfail::Failure::new(format!("unknown model: {model}")));
+            }
         }
         Ok(())
     }

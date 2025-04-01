@@ -14,10 +14,10 @@ pub struct ChatGpt {
 }
 
 impl ChatGpt {
-    pub fn new(command: &Command) -> orfail::Result<Self> {
+    pub fn new(command: &Command, model: String) -> orfail::Result<Self> {
         Ok(Self {
             api_key: command.openai_api_key.clone().or_fail()?,
-            model: command.model.clone(),
+            model,
         })
     }
 

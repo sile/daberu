@@ -28,29 +28,19 @@ fn main() -> noargs::Result<()> {
         log: noargs::opt("log")
             .short('l')
             .ty("PATH")
+            .env("DABERU_LOG_PATH")
             .doc(concat!(
-                "Path to log file for saving conversation history\n",
+                "Path to log file for saving the last conversation\n",
                 "\n",
-                "If the file already exists, its contents are included\n",
-                "in subsequent conversations"
+                "If the file already exists, its contents are truncated\n",
+                "unless `--continue` flag are specified",
             ))
             .take(&mut args)
             .parse_if_present()?,
-        oneshot_log: noargs::opt("oneshot-log")
-            .ty("PATH")
-            .env("DABERU_ONESHOT_LOG_PATH")
-            .doc(concat!(
-                "Specifies a path for a \"one-shot\" conversation log file\n",
-                "\n",
-                "Upon opening the log file, any existing file content will be truncated.\n",
-                "If `--log` is specified, this option will be ignored"
-            ))
-            .take(&mut args)
-            .parse_if_present()?,
-        continue_from_oneshot_log: noargs::flag("continue")
+        continue_from_log: noargs::flag("continue")
             .short('c')
             .doc(concat!(
-                "Continue conversation from the existing one-shot log file ",
+                "Continue conversation from the existing log file ",
                 "instead of truncating it"
             ))
             .take(&mut args)

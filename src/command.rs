@@ -9,8 +9,7 @@ pub struct Command {
     pub openai_api_key: Option<String>,
     pub anthropic_api_key: Option<String>,
     pub log: Option<PathBuf>,
-    pub oneshot_log: Option<PathBuf>,
-    pub continue_from_oneshot_log: bool,
+    pub continue_from_log: bool,
     pub models: Vec<String>,
     pub system: Option<String>,
     pub gist: Option<String>,
@@ -22,13 +21,14 @@ impl Command {
 
         let mut gist_offset = 0;
         let mut log = self
-            .log_file_path()
+            .log
+            .as_ref()
             .filter(|path| path.exists())
             .map(MessageLog::load)
             .transpose()
             .or_fail()?
             .unwrap_or_default();
-        if self.log.is_none() && self.oneshot_log.is_some() && !self.continue_from_oneshot_log {
+        if !self.continue_from_log {
             log.messages.clear();
         }
         if let Some(id) = self.gist.as_ref().filter(|id| *id != "new") {
@@ -68,7 +68,7 @@ impl Command {
             }
         }
 
-        if let Some(path) = self.log_file_path() {
+        if let Some(path) = self.log {
             log.save(path).or_fail()?;
         }
         match self.gist.as_deref() {
@@ -84,10 +84,6 @@ impl Command {
         }
 
         Ok(())
-    }
-
-    fn log_file_path(&self) -> Option<&PathBuf> {
-        self.log.as_ref().or(self.oneshot_log.as_ref())
     }
 
     fn check_api_key(&self) -> orfail::Result<()> {

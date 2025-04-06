@@ -50,9 +50,24 @@ impl ChatGpt {
 
         impl<'text> nojson::FromRawJsonValue<'text> for Data {
             fn from_raw_json_value(
-                _value: nojson::RawJsonValue<'text, '_>,
+                value: nojson::RawJsonValue<'text, '_>,
             ) -> Result<Self, nojson::JsonParseError> {
-                todo!()
+                let ([choices], []) = value.to_fixed_object(["choices"], [])?;
+                let choices = choices
+                    .to_array()?
+                    .map(|choice| {
+                        let ([delta], [finish_reason]) =
+                            choice.to_fixed_object(["delta"], ["finish_reason"])?;
+                        let ([content], []) = delta.to_fixed_object(["content"], [])?;
+                        Ok(Choice {
+                            delta: Delta {
+                                content: content.try_to()?,
+                            },
+                            finish_reason: finish_reason.map(|x| x.try_to()).transpose()?,
+                        })
+                    })
+                    .collect::<Result<_, _>>()?;
+                Ok(Self { choices })
             }
         }
 
@@ -104,7 +119,6 @@ impl ChatGpt {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-// TODO: #[serde(rename_all = "snake_case")]
 enum FinishReason {
     Stop,
     Length,
@@ -120,6 +134,22 @@ impl FinishReason {
             )),
             Self::ContentFilter => Err(Failure::new(
                 "Omitted content due to a flag from our content filters",
+            )),
+        }
+    }
+}
+
+impl<'text> nojson::FromRawJsonValue<'text> for FinishReason {
+    fn from_raw_json_value(
+        value: nojson::RawJsonValue<'text, '_>,
+    ) -> Result<Self, nojson::JsonParseError> {
+        match value.to_unquoted_string_str()?.as_ref() {
+            "stop" => Ok(Self::Stop),
+            "length" => Ok(Self::Length),
+            "content_filter" => Ok(Self::ContentFilter),
+            reason => Err(nojson::JsonParseError::invalid_value(
+                value,
+                format!("unexpected finish reason: {reason}"),
             )),
         }
     }

@@ -13,6 +13,7 @@ pub struct Command {
     pub models: Vec<String>,
     pub system: Option<String>,
     pub gist: Option<String>,
+    pub resources: Vec<PathBuf>,
 }
 
 impl Command {
@@ -38,7 +39,7 @@ impl Command {
         if let Some(system) = &self.system {
             log.set_system_message_if_empty(system);
         }
-        log.read_input().or_fail()?;
+        log.read_input(&self.resources).or_fail()?;
 
         for (i, model) in self.models.iter().enumerate() {
             let result = if model.starts_with("gpt") || model.starts_with("openai:") {

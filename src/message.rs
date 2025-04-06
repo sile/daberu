@@ -1,4 +1,7 @@
-use std::{io::Read, path::Path};
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 use orfail::OrFail;
 
@@ -82,10 +85,41 @@ impl MessageLog {
         Ok(())
     }
 
-    pub fn read_input(&mut self) -> orfail::Result<()> {
+    pub fn read_input(&mut self, resources: &[PathBuf]) -> orfail::Result<()> {
         let mut input = String::new();
         std::io::stdin().read_to_string(&mut input).or_fail()?;
         (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
+
+        let resources = resources
+            .iter()
+            .map(|path| {
+                let content = std::fs::read_to_string(path).or_fail_with(|e| {
+                    format!("failed to read resource file {}: {e}", path.display())
+                })?;
+                Ok(serde_json::json!({
+                    "type": "file",
+                    "path": path,
+                    "content": content
+                }))
+            })
+            .collect::<orfail::Result<Vec<_>>>()?;
+        if !resources.is_empty() {
+            input.push_str(
+                r#"
+
+------
+
+# Resources
+
+Please consider the following JSON array as the resources:
+"#,
+            );
+            input.push_str(&format!(
+                "```json\n{}\n```",
+                serde_json::to_string(&resources).or_fail()?
+            ));
+        }
+
         self.messages.push(Message {
             role: Role::User,
             content: input,

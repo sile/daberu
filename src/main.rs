@@ -12,7 +12,7 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
-    let command = Command {
+    let mut command = Command {
         openai_api_key: noargs::opt("openai-api-key")
             .ty("STRING")
             .env("OPENAI_API_KEY")
@@ -72,7 +72,23 @@ fn main() -> noargs::Result<()> {
             ))
             .take(&mut args)
             .parse_if_present()?,
+        resources: Vec::new(),
     };
+
+    while let Some(r) = noargs::opt("resource")
+        .short('r')
+        .ty("PATH")
+        .doc(concat!(
+            "File path to content that will be used as a resource for the conversion\n",
+            "\n",
+            "This option can be specified multiple times"
+        ))
+        .take(&mut args)
+        .parse_if_present()?
+    {
+        command.resources.push(r);
+    }
+
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());

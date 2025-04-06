@@ -77,6 +77,7 @@ fn main() -> noargs::Result<()> {
 
     while let Some(r) = noargs::opt("resource")
         .short('r')
+        .ty("PATH")
         .doc(concat!(
             "File path to content that will be used as a resource for the conversion\n",
             "\n",

@@ -28,25 +28,23 @@ fn main() -> noargs::Result<()> {
         log: noargs::opt("log")
             .short('l')
             .ty("PATH")
+            .env("DABERU_LOG_PATH")
             .doc(concat!(
-                "Path to log file for saving conversation history\n",
+                "Path to log file for saving the last conversation\n",
                 "\n",
-                "If the file already exists, its contents are included\n",
-                "in subsequent conversations."
+                "If the file already exists, its contents are truncated\n",
+                "unless `--continue` flag are specified",
             ))
             .take(&mut args)
             .parse_if_present()?,
-        oneshot_log: noargs::opt("oneshot-log")
-            .ty("PATH")
-            .env("DABERU_ONESHOT_LOG_PATH")
+        continue_from_log: noargs::flag("continue")
+            .short('c')
             .doc(concat!(
-                "Specifies a path for a \"one-shot\" conversation log file\n",
-                "\n",
-                "Upon opening the log file, any existing file content will be truncated.\n",
-                "If `--log` is specified, this option will be ignored."
+                "Continue conversation from the existing log file ",
+                "instead of truncating it"
             ))
             .take(&mut args)
-            .parse_if_present()?,
+            .is_present(),
         models: noargs::opt("model")
             .short('m')
             .ty("[PROVIDER:]MODEL_NAME")
@@ -70,7 +68,7 @@ fn main() -> noargs::Result<()> {
                 "Save the output to GitHub Gist\n",
                 "\n",
                 "If `EXISTING_GIST_ID` is specified,\n",
-                "load the log from the Gist entry and update the entry."
+                "load the log from the Gist entry and update the entry"
             ))
             .take(&mut args)
             .parse_if_present()?,

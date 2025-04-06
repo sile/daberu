@@ -12,7 +12,6 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 noargs = "0.2.0"
+nojson = "0.1.0"
 orfail = "1"
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = "1.0.96"
-ureq = { version = "3", features = ["json"] }
+ureq = "3"

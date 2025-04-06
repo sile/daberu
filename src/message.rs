@@ -1,20 +1,34 @@
 use std::{
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 
 use orfail::OrFail;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Message {
     pub role: Role,
     pub content: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    // TODO: #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+impl nojson::DisplayJson for Message {
+    fn fmt(&self, _f: &mut nojson::JsonFormatter<'_, '_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<'text> nojson::FromRawJsonValue<'text> for Message {
+    fn from_raw_json_value(
+        _value: nojson::RawJsonValue<'text, '_>,
+    ) -> Result<Self, nojson::JsonParseError> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+// TODO: #[serde(rename_all = "lowercase")]
 pub enum Role {
     System,
     User,
@@ -61,17 +75,17 @@ pub struct MessageLog {
 
 impl MessageLog {
     pub fn load<P: AsRef<Path>>(path: P) -> orfail::Result<Self> {
-        let file = std::fs::File::open(&path).or_fail_with(|e| {
+        let text = std::fs::read_to_string(&path).or_fail_with(|e| {
             format!("failed to open log file {}: {e}", path.as_ref().display())
         })?;
-        let messages = serde_json::from_reader(file).or_fail_with(|e| {
+        let nojson::Json(messages) = text.parse::<nojson::Json<_>>().or_fail_with(|e| {
             format!("failed to load log file {}: {e}", path.as_ref().display())
         })?;
         Ok(Self { messages })
     }
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> orfail::Result<()> {
-        let file = std::fs::OpenOptions::new()
+        let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)
@@ -79,7 +93,7 @@ impl MessageLog {
             .or_fail_with(|e| {
                 format!("failed to create log file {}: {e}", path.as_ref().display())
             })?;
-        serde_json::to_writer(file, &self.messages).or_fail_with(|e| {
+        write!(file, "{}", nojson::Json(&self.messages)).or_fail_with(|e| {
             format!("failed to save log file {}: {e}", path.as_ref().display())
         })?;
         Ok(())
@@ -96,10 +110,14 @@ impl MessageLog {
                 let content = std::fs::read_to_string(path).or_fail_with(|e| {
                     format!("failed to read resource file {}: {e}", path.display())
                 })?;
-                Ok(serde_json::json!({
-                    "type": "file",
-                    "path": path,
-                    "content": content
+                Ok(nojson::json(move |f| {
+                    f.object(|f| {
+                        f.member("type", "file")?;
+                        // TODO:
+                        f.member("path", path.display().to_string())?;
+                        f.member("content", &content)?;
+                        Ok(())
+                    })
                 }))
             })
             .collect::<orfail::Result<Vec<_>>>()?;
@@ -114,10 +132,7 @@ impl MessageLog {
 Please consider the following JSON array as the resources:
 "#,
             );
-            input.push_str(&format!(
-                "```json\n{}\n```",
-                serde_json::to_string(&resources).or_fail()?
-            ));
+            input.push_str(&format!("```json\n{}\n```", nojson::Json(&resources)));
         }
 
         self.messages.push(Message {

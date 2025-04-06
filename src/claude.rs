@@ -27,24 +27,23 @@ impl Claude {
 
     pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
         let (log, system_message) = log.strip_system_message();
-        let mut request = serde_json::json!({
-            "model": self.model,
-            "stream": true,
-            "max_tokens": MAX_TOKENS,
-            "messages": log.messages,
+        let request = nojson::json(|f| {
+            f.object(|f| {
+                f.member("model", &self.model)?;
+                f.member("stream", true)?;
+                f.member("max_tokens", MAX_TOKENS)?;
+                f.member("messages", &log.messages)?;
+                if let Some(system_message) = &system_message {
+                    f.member("system", system_message)?;
+                }
+                Ok(())
+            })
         });
-        if let Some(system_message) = system_message {
-            request
-                .as_object_mut()
-                .or_fail()?
-                .insert("system".to_owned(), system_message.into());
-        }
-
         let response = ureq::post(API_END_POINT)
             .header("Content-Type", "application/json")
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", ANTHROPIC_VERSION)
-            .send_json(&request)
+            .send(request.to_string())
             .or_fail()?;
         let reply = self.handle_stream_response(response).or_fail()?;
         Ok(reply)
@@ -68,7 +67,8 @@ impl Claude {
                 break;
             }
 
-            let data: Data = serde_json::from_str(&line["data: ".len()..])
+            let nojson::Json(data) = line["data: ".len()..]
+                .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {
                 Data::MessageStart { stop_reason } | Data::MessageDelta { stop_reason } => {
@@ -88,12 +88,12 @@ impl Claude {
                     print!("{}", delta.text);
                     std::io::stdout().flush().or_fail()?;
                 }
-                Data::ContentBlockStop {} => {}
-                Data::Error { error } => {
-                    return Err(orfail::Failure::new(format!(
-                        "Claude API error: reason={error}"
-                    )));
-                }
+                Data::ContentBlockStop {} => {} // TODO
+                                                // Data::Error { error } => {
+                                                //     return Err(orfail::Failure::new(format!(
+                                                //         "Claude API error: reason={error}"
+                                                //     )));
+                                                // }
             }
         }
         println!();
@@ -106,8 +106,8 @@ impl Claude {
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[derive(Debug)]
+// TODO: #[serde(rename_all = "snake_case", tag = "type")]
 enum Data {
     MessageStart { stop_reason: Option<String> },
     MessageDelta { stop_reason: Option<String> },
@@ -116,15 +116,23 @@ enum Data {
     ContentBlockDelta { delta: Delta },
     ContentBlockStop {},
     Ping,
-    Error { error: serde_json::Value },
+    // TODO: Error { error: serde_json::Value },
 }
 
-#[derive(Debug, serde::Deserialize)]
+impl<'text> nojson::FromRawJsonValue<'text> for Data {
+    fn from_raw_json_value(
+        _value: nojson::RawJsonValue<'text, '_>,
+    ) -> Result<Self, nojson::JsonParseError> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
 struct ContentBlock {
     text: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug)]
 struct Delta {
     text: String,
 }

@@ -22,15 +22,18 @@ impl ChatGpt {
     }
 
     pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
-        let request = serde_json::json!({
-            "model": self.model,
-            "stream": true,
-            "messages": log.messages,
+        let request = nojson::json(|f| {
+            f.object(|f| {
+                f.member("model", &self.model)?;
+                f.member("stream", true)?;
+                f.member("messages", &log.messages)?;
+                Ok(())
+            })
         });
         let response = ureq::post("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
             .header("Authorization", &format!("Bearer {}", self.api_key))
-            .send_json(&request)
+            .send(request.to_string())
             .or_fail()?;
         let reply = self.handle_stream_response(response).or_fail()?;
         Ok(reply)
@@ -40,20 +43,27 @@ impl ChatGpt {
         &self,
         response: ureq::http::response::Response<ureq::Body>,
     ) -> orfail::Result<Message> {
-        #[derive(Debug, serde::Deserialize)]
+        #[derive(Debug)]
         struct Data {
             choices: Vec<Choice>,
         }
 
-        #[derive(Debug, serde::Deserialize)]
+        impl<'text> nojson::FromRawJsonValue<'text> for Data {
+            fn from_raw_json_value(
+                _value: nojson::RawJsonValue<'text, '_>,
+            ) -> Result<Self, nojson::JsonParseError> {
+                todo!()
+            }
+        }
+
+        #[derive(Debug)]
         struct Choice {
             delta: Delta,
             finish_reason: Option<FinishReason>,
         }
 
-        #[derive(Debug, serde::Deserialize)]
+        #[derive(Debug)]
         struct Delta {
-            #[serde(default)]
             content: String,
         }
 
@@ -71,7 +81,8 @@ impl ChatGpt {
                 break;
             }
 
-            let data: Data = serde_json::from_str(&line["data: ".len()..])
+            let nojson::Json(data) = line["data: ".len()..]
+                .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             (!data.choices.is_empty()).or_fail()?;
             if let Some(reason) = data.choices[0].finish_reason {
@@ -92,8 +103,8 @@ impl ChatGpt {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+// TODO: #[serde(rename_all = "snake_case")]
 enum FinishReason {
     Stop,
     Length,

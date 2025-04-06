@@ -76,7 +76,7 @@ impl Claude {
                         (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
                     }
                 }
-                Data::MessageStop {} => {}
+                Data::MessageStop => {}
                 Data::Ping => {}
                 Data::ContentBlockStart { content_block } => {
                     content.push_str(&content_block.text);
@@ -88,12 +88,12 @@ impl Claude {
                     print!("{}", delta.text);
                     std::io::stdout().flush().or_fail()?;
                 }
-                Data::ContentBlockStop {} => {} // TODO
-                                                // Data::Error { error } => {
-                                                //     return Err(orfail::Failure::new(format!(
-                                                //         "Claude API error: reason={error}"
-                                                //     )));
-                                                // }
+                Data::ContentBlockStop => {}
+                Data::Error { error } => {
+                    return Err(orfail::Failure::new(format!(
+                        "Claude API error: reason={error}"
+                    )));
+                }
             }
         }
         println!();
@@ -107,23 +107,67 @@ impl Claude {
 }
 
 #[derive(Debug)]
-// TODO: #[serde(rename_all = "snake_case", tag = "type")]
 enum Data {
     MessageStart { stop_reason: Option<String> },
     MessageDelta { stop_reason: Option<String> },
-    MessageStop {},
+    MessageStop,
     ContentBlockStart { content_block: ContentBlock },
     ContentBlockDelta { delta: Delta },
-    ContentBlockStop {},
+    ContentBlockStop,
     Ping,
-    // TODO: Error { error: serde_json::Value },
+    Error { error: String },
 }
 
 impl<'text> nojson::FromRawJsonValue<'text> for Data {
     fn from_raw_json_value(
-        _value: nojson::RawJsonValue<'text, '_>,
+        value: nojson::RawJsonValue<'text, '_>,
     ) -> Result<Self, nojson::JsonParseError> {
-        todo!()
+        let ([ty], []) = value.to_fixed_object(["type"], [])?;
+        match ty.as_raw_str() {
+            "message_start" => {
+                let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
+                Ok(Self::MessageStart {
+                    stop_reason: stop_reason.map(|x| x.as_raw_str().to_owned()),
+                })
+            }
+            "message_delta" => {
+                let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
+                Ok(Self::MessageDelta {
+                    stop_reason: stop_reason.map(|x| x.as_raw_str().to_owned()),
+                })
+            }
+            "message_stop" => Ok(Self::MessageStop),
+            "content_block_start" => {
+                let ([content_block], []) = value.to_fixed_object(["content_block"], [])?;
+                let ([text], []) = content_block.to_fixed_object(["text"], [])?;
+                Ok(Self::ContentBlockStart {
+                    content_block: ContentBlock {
+                        text: text.as_raw_str().to_owned(),
+                    },
+                })
+            }
+            "content_block_delta" => {
+                let ([delta], []) = value.to_fixed_object(["delta"], [])?;
+                let ([text], []) = delta.to_fixed_object(["text"], [])?;
+                Ok(Self::ContentBlockDelta {
+                    delta: Delta {
+                        text: text.as_raw_str().to_owned(),
+                    },
+                })
+            }
+            "content_block_stop" => Ok(Self::ContentBlockStop),
+            "ping" => Ok(Self::Ping),
+            "error" => {
+                let ([error], []) = value.to_fixed_object(["error"], [])?;
+                Ok(Self::Error {
+                    error: error.as_raw_str().to_owned(),
+                })
+            }
+            ty => Err(nojson::JsonParseError::invalid_value(
+                value,
+                format!("unknown message type: {ty}"),
+            )),
+        }
     }
 }
 

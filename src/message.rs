@@ -9,26 +9,53 @@ use orfail::OrFail;
 pub struct Message {
     pub role: Role,
     pub content: String,
-    // TODO: #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
 }
 
 impl nojson::DisplayJson for Message {
-    fn fmt(&self, _f: &mut nojson::JsonFormatter<'_, '_>) -> std::fmt::Result {
-        todo!()
+    fn fmt(&self, f: &mut nojson::JsonFormatter<'_, '_>) -> std::fmt::Result {
+        f.object(|f| {
+            f.member(
+                "role",
+                match self.role {
+                    Role::System => "system",
+                    Role::User => "user",
+                    Role::Assistant => "assistant",
+                },
+            )?;
+            f.member("content", &self.content)?;
+            if let Some(model) = &self.model {
+                f.member("model", model)?;
+            }
+            Ok(())
+        })
     }
 }
 
 impl<'text> nojson::FromRawJsonValue<'text> for Message {
     fn from_raw_json_value(
-        _value: nojson::RawJsonValue<'text, '_>,
+        value: nojson::RawJsonValue<'text, '_>,
     ) -> Result<Self, nojson::JsonParseError> {
-        todo!()
+        let ([role, content], [model]) = value.to_fixed_object(["role", "content"], ["model"])?;
+        Ok(Self {
+            role: match role.as_raw_str() {
+                "system" => Role::System,
+                "user" => Role::User,
+                "assistant" => Role::Assistant,
+                role_str => {
+                    return Err(nojson::JsonParseError::invalid_value(
+                        role,
+                        format!("unknown role: {role_str}"),
+                    ));
+                }
+            },
+            content: content.try_to()?,
+            model: model.map(|m| m.try_to()).transpose()?,
+        })
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-// TODO: #[serde(rename_all = "lowercase")]
 pub enum Role {
     System,
     User,
@@ -113,7 +140,7 @@ impl MessageLog {
                 Ok(nojson::json(move |f| {
                     f.object(|f| {
                         f.member("type", "file")?;
-                        // TODO:
+                        // TODO: use nojson's implementation when it becomes available
                         f.member("path", path.display().to_string())?;
                         f.member("content", &content)?;
                         Ok(())

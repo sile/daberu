@@ -32,7 +32,7 @@ fn main() -> noargs::Result<()> {
                 "Path to log file for saving conversation history\n",
                 "\n",
                 "If the file already exists, its contents are included\n",
-                "in subsequent conversations."
+                "in subsequent conversations"
             ))
             .take(&mut args)
             .parse_if_present()?,
@@ -43,10 +43,18 @@ fn main() -> noargs::Result<()> {
                 "Specifies a path for a \"one-shot\" conversation log file\n",
                 "\n",
                 "Upon opening the log file, any existing file content will be truncated.\n",
-                "If `--log` is specified, this option will be ignored."
+                "If `--log` is specified, this option will be ignored"
             ))
             .take(&mut args)
             .parse_if_present()?,
+        continue_from_oneshot_log: noargs::flag("continue")
+            .short('c')
+            .doc(concat!(
+                "Continue conversation from the existing one-shot log file ",
+                "instead of truncating it"
+            ))
+            .take(&mut args)
+            .is_present(),
         models: noargs::opt("model")
             .short('m')
             .ty("[PROVIDER:]MODEL_NAME")
@@ -70,7 +78,7 @@ fn main() -> noargs::Result<()> {
                 "Save the output to GitHub Gist\n",
                 "\n",
                 "If `EXISTING_GIST_ID` is specified,\n",
-                "load the log from the Gist entry and update the entry."
+                "load the log from the Gist entry and update the entry"
             ))
             .take(&mut args)
             .parse_if_present()?,

@@ -10,6 +10,7 @@ pub struct Command {
     pub anthropic_api_key: Option<String>,
     pub log: Option<PathBuf>,
     pub oneshot_log: Option<PathBuf>,
+    pub continue_from_oneshot_log: bool,
     pub models: Vec<String>,
     pub system: Option<String>,
     pub gist: Option<String>,
@@ -27,7 +28,7 @@ impl Command {
             .transpose()
             .or_fail()?
             .unwrap_or_default();
-        if self.log.is_none() && self.oneshot_log.is_some() {
+        if self.log.is_none() && self.oneshot_log.is_some() && !self.continue_from_oneshot_log {
             log.messages.clear();
         }
         if let Some(id) = self.gist.as_ref().filter(|id| *id != "new") {

@@ -127,17 +127,13 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
             "message_start" => {
                 let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
                 Ok(Self::MessageStart {
-                    stop_reason: stop_reason
-                        .map(|x| x.to_unquoted_string_str().map(|s| s.into_owned()))
-                        .transpose()?,
+                    stop_reason: stop_reason.map(|v| v.try_to()).transpose()?,
                 })
             }
             "message_delta" => {
                 let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
                 Ok(Self::MessageDelta {
-                    stop_reason: stop_reason
-                        .map(|x| x.to_unquoted_string_str().map(|s| s.into_owned()))
-                        .transpose()?,
+                    stop_reason: stop_reason.map(|v| v.try_to()).transpose()?,
                 })
             }
             "message_stop" => Ok(Self::MessageStop),
@@ -146,7 +142,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
                 let ([text], []) = content_block.to_fixed_object(["text"], [])?;
                 Ok(Self::ContentBlockStart {
                     content_block: ContentBlock {
-                        text: text.to_unquoted_string_str()?.into_owned(),
+                        text: text.try_to()?,
                     },
                 })
             }
@@ -155,7 +151,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
                 let ([text], []) = delta.to_fixed_object(["text"], [])?;
                 Ok(Self::ContentBlockDelta {
                     delta: Delta {
-                        text: text.to_unquoted_string_str()?.into_owned(),
+                        text: text.try_to()?,
                     },
                 })
             }

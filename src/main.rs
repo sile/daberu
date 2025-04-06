@@ -26,6 +26,7 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .parse_if_present()?,
         log: noargs::opt("log")
+            .short('l')
             .ty("PATH")
             .doc(concat!(
                 "Path to log file for saving conversation history\n",

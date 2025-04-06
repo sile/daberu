@@ -38,7 +38,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Message {
     ) -> Result<Self, nojson::JsonParseError> {
         let ([role, content], [model]) = value.to_fixed_object(["role", "content"], ["model"])?;
         Ok(Self {
-            role: match role.as_raw_str() {
+            role: match role.to_unquoted_string_str()?.as_ref() {
                 "system" => Role::System,
                 "user" => Role::User,
                 "assistant" => Role::Assistant,

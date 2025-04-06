@@ -123,17 +123,21 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
         value: nojson::RawJsonValue<'text, '_>,
     ) -> Result<Self, nojson::JsonParseError> {
         let ([ty], []) = value.to_fixed_object(["type"], [])?;
-        match ty.as_raw_str() {
+        match ty.to_unquoted_string_str()?.as_ref() {
             "message_start" => {
                 let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
                 Ok(Self::MessageStart {
-                    stop_reason: stop_reason.map(|x| x.as_raw_str().to_owned()),
+                    stop_reason: stop_reason
+                        .map(|x| x.to_unquoted_string_str().map(|s| s.into_owned()))
+                        .transpose()?,
                 })
             }
             "message_delta" => {
                 let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
                 Ok(Self::MessageDelta {
-                    stop_reason: stop_reason.map(|x| x.as_raw_str().to_owned()),
+                    stop_reason: stop_reason
+                        .map(|x| x.to_unquoted_string_str().map(|s| s.into_owned()))
+                        .transpose()?,
                 })
             }
             "message_stop" => Ok(Self::MessageStop),
@@ -142,7 +146,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
                 let ([text], []) = content_block.to_fixed_object(["text"], [])?;
                 Ok(Self::ContentBlockStart {
                     content_block: ContentBlock {
-                        text: text.as_raw_str().to_owned(),
+                        text: text.to_unquoted_string_str()?.into_owned(),
                     },
                 })
             }
@@ -151,7 +155,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
                 let ([text], []) = delta.to_fixed_object(["text"], [])?;
                 Ok(Self::ContentBlockDelta {
                     delta: Delta {
-                        text: text.as_raw_str().to_owned(),
+                        text: text.to_unquoted_string_str()?.into_owned(),
                     },
                 })
             }
@@ -160,6 +164,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
             "error" => {
                 let ([error], []) = value.to_fixed_object(["error"], [])?;
                 Ok(Self::Error {
+                    // TODO: Add owned version of RawJson to nojson
                     error: error.as_raw_str().to_owned(),
                 })
             }

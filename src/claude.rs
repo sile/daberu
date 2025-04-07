@@ -160,8 +160,7 @@ impl<'text> nojson::FromRawJsonValue<'text> for Data {
             "error" => {
                 let ([error], []) = value.to_fixed_object(["error"], [])?;
                 Ok(Self::Error {
-                    // TODO: Add owned version of RawJson to nojson
-                    error: error.as_raw_str().to_owned(),
+                    error: error.to_string(),
                 })
             }
             ty => Err(nojson::JsonParseError::invalid_value(

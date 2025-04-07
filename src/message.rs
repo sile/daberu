@@ -140,10 +140,8 @@ impl MessageLog {
                 Ok(nojson::json(move |f| {
                     f.object(|f| {
                         f.member("type", "file")?;
-                        // TODO: use nojson's implementation when it becomes available
-                        f.member("path", path.display().to_string())?;
-                        f.member("content", &content)?;
-                        Ok(())
+                        f.member("path", &path)?;
+                        f.member("content", &content)
                     })
                 }))
             })

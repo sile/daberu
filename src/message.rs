@@ -140,7 +140,7 @@ impl MessageLog {
                 Ok(nojson::json(move |f| {
                     f.object(|f| {
                         f.member("type", "file")?;
-                        f.member("path", &path)?;
+                        f.member("path", path)?;
                         f.member("content", &content)
                     })
                 }))

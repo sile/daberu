@@ -12,19 +12,19 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
-    let mut command = Command {
+    let command = Command {
         openai_api_key: noargs::opt("openai-api-key")
             .ty("STRING")
             .env("OPENAI_API_KEY")
             .doc("OpenAI API key")
             .take(&mut args)
-            .parse_if_present()?,
+            .present_and_then(|a| a.value().parse())?,
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")
             .env("ANTHROPIC_API_KEY")
             .doc("Anthropic API key")
             .take(&mut args)
-            .parse_if_present()?,
+            .present_and_then(|a| a.value().parse())?,
         log: noargs::opt("log")
             .short('l')
             .ty("PATH")
@@ -36,7 +36,7 @@ fn main() -> noargs::Result<()> {
                 "unless `--continue` flag are specified",
             ))
             .take(&mut args)
-            .parse_if_present()?,
+            .present_and_then(|a| a.value().parse())?,
         continue_from_log: noargs::flag("continue")
             .short('c')
             .doc(concat!(
@@ -52,16 +52,15 @@ fn main() -> noargs::Result<()> {
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)
-            .parse::<String>()?
-            .split(',')
-            .map(String::from)
-            .collect(),
+            .then(|a| -> Result<_, String> {
+                Ok(a.value().split(',').map(String::from).collect())
+            })?,
         system: noargs::opt("system")
             .short('s')
             .ty("STRING")
             .doc("System message")
             .take(&mut args)
-            .parse_if_present()?,
+            .present_and_then(|a| a.value().parse())?,
         gist: noargs::opt("gist")
             .ty("new | EXISTING_GIST_ID")
             .doc(concat!(
@@ -71,23 +70,22 @@ fn main() -> noargs::Result<()> {
                 "load the log from the Gist entry and update the entry"
             ))
             .take(&mut args)
-            .parse_if_present()?,
-        resources: Vec::new(),
+            .present_and_then(|a| a.value().parse())?,
+        resources: std::iter::from_fn(|| {
+            noargs::opt("resource")
+                .short('r')
+                .ty("PATH")
+                .doc(concat!(
+                    "File path to content that will be used as a resource for the conversion\n",
+                    "\n",
+                    "This option can be specified multiple times"
+                ))
+                .take(&mut args)
+                .present_and_then(|a| a.value().parse())
+                .transpose()
+        })
+        .collect::<Result<_, _>>()?,
     };
-
-    while let Some(r) = noargs::opt("resource")
-        .short('r')
-        .ty("PATH")
-        .doc(concat!(
-            "File path to content that will be used as a resource for the conversion\n",
-            "\n",
-            "This option can be specified multiple times"
-        ))
-        .take(&mut args)
-        .parse_if_present()?
-    {
-        command.resources.push(r);
-    }
 
     if let Some(help) = args.finish()? {
         print!("{help}");

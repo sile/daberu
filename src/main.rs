@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 use daberu::command::Command;
 use orfail::OrFail;
 
@@ -52,7 +54,7 @@ fn main() -> noargs::Result<()> {
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)
-            .then(|a| -> Result<_, String> {
+            .then(|a| -> Result<_, Infallible> {
                 Ok(a.value().split(',').map(String::from).collect())
             })?,
         system: noargs::opt("system")

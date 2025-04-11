@@ -14,7 +14,7 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
-    let command = Command {
+    let mut command = Command {
         openai_api_key: noargs::opt("openai-api-key")
             .ty("STRING")
             .env("OPENAI_API_KEY")
@@ -76,9 +76,13 @@ fn main() -> noargs::Result<()> {
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')
-                .ty("PATH")
+                .ty("[file:]PATH | sh:COMMAND")
                 .doc(concat!(
-                    "File path to content that will be used as a resource for the conversion\n",
+                    "File path or command to be used as a resource for the conversion\n",
+                    "\n",
+                    "Prefixes:\n",
+                    "- `file:PATH` - explicitly specify a file path (default if no prefix)\n",
+                    "- `sh:COMMAND` - execute shell command and use its output\n",
                     "\n",
                     "This option can be specified multiple times"
                 ))
@@ -87,7 +91,21 @@ fn main() -> noargs::Result<()> {
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
+        resource_size_limit: noargs::opt("resource-size-limit")
+            .short('l')
+            .default("100000")
+            .ty("BYTE_SIZE")
+            .doc(concat!(
+                "Maximum byte size per resource\n",
+                "\n",
+                "If a resource exceeds this limit, the remaining content will be truncated"
+            ))
+            .take(&mut args)
+            .then(|a| a.value().parse())?,
     };
+    for r in &mut command.resources {
+        r.truncate(command.resource_size_limit);
+    }
 
     if let Some(help) = args.finish()? {
         print!("{help}");

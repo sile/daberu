@@ -58,12 +58,14 @@ impl ChatGpt {
                     .map(|choice| {
                         let ([delta], [finish_reason]) =
                             choice.to_fixed_object(["delta"], ["finish_reason"])?;
-                        let ([content], []) = delta.to_fixed_object(["content"], [])?;
+                        let ([], [content]) = delta.to_fixed_object([], ["content"])?;
                         Ok(Choice {
                             delta: Delta {
-                                content: content.try_to()?,
+                                content: content.map(|c| c.try_to()).transpose()?,
                             },
-                            finish_reason: finish_reason.map(|x| x.try_to()).transpose()?,
+                            finish_reason: finish_reason
+                                .and_then(|x| (!x.kind().is_null()).then(|| x.try_to()))
+                                .transpose()?,
                         })
                     })
                     .collect::<Result<_, _>>()?;
@@ -79,7 +81,7 @@ impl ChatGpt {
 
         #[derive(Debug)]
         struct Delta {
-            content: String,
+            content: Option<String>,
         }
 
         let mut content = String::new();
@@ -104,9 +106,11 @@ impl ChatGpt {
                 reason.check().or_fail()?;
             }
 
-            content.push_str(&data.choices[0].delta.content);
-            print!("{}", data.choices[0].delta.content);
-            std::io::stdout().flush().or_fail()?;
+            if let Some(c) = &data.choices[0].delta.content {
+                content.push_str(c);
+                print!("{c}");
+                std::io::stdout().flush().or_fail()?;
+            }
         }
         println!();
 

@@ -92,9 +92,9 @@ fn main() -> noargs::Result<()> {
         })
         .collect::<Result<_, _>>()?,
         resource_size_limit: noargs::opt("resource-size-limit")
-            .short('l')
             .default("100000")
             .ty("BYTE_SIZE")
+            .env("DABERU_RESOURCE_SIZE_LIMIT")
             .doc(concat!(
                 "Maximum byte size per resource\n",
                 "\n",

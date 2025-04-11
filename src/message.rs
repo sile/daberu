@@ -1,9 +1,11 @@
 use std::{
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use orfail::OrFail;
+
+use crate::resource::Resource;
 
 #[derive(Debug, Clone)]
 pub struct Message {
@@ -126,26 +128,11 @@ impl MessageLog {
         Ok(())
     }
 
-    pub fn read_input(&mut self, resources: &[PathBuf]) -> orfail::Result<()> {
+    pub fn read_input(&mut self, resources: &[Resource]) -> orfail::Result<()> {
         let mut input = String::new();
         std::io::stdin().read_to_string(&mut input).or_fail()?;
         (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
 
-        let resources = resources
-            .iter()
-            .map(|path| {
-                let content = std::fs::read_to_string(path).or_fail_with(|e| {
-                    format!("failed to read resource file {}: {e}", path.display())
-                })?;
-                Ok(nojson::json(move |f| {
-                    f.object(|f| {
-                        f.member("type", "file")?;
-                        f.member("path", path)?;
-                        f.member("content", &content)
-                    })
-                }))
-            })
-            .collect::<orfail::Result<Vec<_>>>()?;
         if !resources.is_empty() {
             input.push_str(
                 r#"
@@ -157,7 +144,7 @@ impl MessageLog {
 Please consider the following JSON array as the resources:
 "#,
             );
-            input.push_str(&format!("```json\n{}\n```", nojson::Json(&resources)));
+            input.push_str(&format!("```json\n{}\n```", nojson::Json(resources)));
         }
 
         self.messages.push(Message {

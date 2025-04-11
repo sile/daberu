@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{chat_gpt::ChatGpt, claude::Claude, gist, message::MessageLog};
+use crate::{chat_gpt::ChatGpt, claude::Claude, gist, message::MessageLog, resource::Resource};
 
 #[derive(Debug)]
 pub struct Command {
@@ -13,7 +13,7 @@ pub struct Command {
     pub models: Vec<String>,
     pub system: Option<String>,
     pub gist: Option<String>,
-    pub resources: Vec<PathBuf>,
+    pub resources: Vec<Resource>,
 }
 
 impl Command {

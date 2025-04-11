@@ -14,6 +14,7 @@ pub struct Command {
     pub system: Option<String>,
     pub gist: Option<String>,
     pub resources: Vec<Resource>,
+    pub resource_size_limit: usize,
 }
 
 impl Command {

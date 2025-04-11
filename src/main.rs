@@ -14,7 +14,7 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
-    let command = Command {
+    let mut command = Command {
         openai_api_key: noargs::opt("openai-api-key")
             .ty("STRING")
             .env("OPENAI_API_KEY")
@@ -87,7 +87,21 @@ fn main() -> noargs::Result<()> {
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
+        resource_size_limit: noargs::opt("resource-size-limit")
+            .short('l')
+            .default("100000")
+            .ty("BYTE_SIZE")
+            .doc(concat!(
+                "Maximum byte size per resource\n",
+                "\n",
+                "If a resource exceeds this limit, the remaining content will be truncated"
+            ))
+            .take(&mut args)
+            .then(|a| a.value().parse())?,
     };
+    for r in &mut command.resources {
+        r.truncate(command.resource_size_limit);
+    }
 
     if let Some(help) = args.finish()? {
         print!("{help}");

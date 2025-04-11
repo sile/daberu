@@ -9,6 +9,43 @@ pub enum Resource {
     Shell(ShellResource),
 }
 
+impl Resource {
+    pub fn truncate(&mut self, mut n: usize) {
+        match self {
+            Resource::File(r) => {
+                if r.content.len() <= n {
+                    return;
+                }
+                while !r.content.is_char_boundary(n) {
+                    n -= 1;
+                }
+                eprintln!(
+                    "[WARNING] File resource ({}) exceeds size limit (truncated): size={}, limit={}",
+                    r.path.display(),
+                    r.content.len(),
+                    n
+                );
+                r.content.truncate(n);
+            }
+            Resource::Shell(r) => {
+                if r.output.len() <= n {
+                    return;
+                }
+                while !r.output.is_char_boundary(n) {
+                    n -= 1;
+                }
+                eprintln!(
+                    "[WARNING] Shell resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
+                    r.command.len(),
+                    r.output.len(),
+                    n
+                );
+                r.output.truncate(n);
+            }
+        }
+    }
+}
+
 impl FromStr for Resource {
     type Err = String;
 

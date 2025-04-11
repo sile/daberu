@@ -127,9 +127,9 @@ dependencies = [
 
 [[package]]
 name = "noargs"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28e00927e9eb7ac85489edf409d76c1b115157430622bc337762378277111f6f"
+checksum = "7a823329c7c4b4955b37f04f38b0a56dae5f5fb3aecda2c2eebfcb51ece4727a"
 
 [[package]]
 name = "nojson"

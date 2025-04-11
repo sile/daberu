@@ -36,7 +36,7 @@ impl Resource {
                 }
                 eprintln!(
                     "[WARNING] Shell resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
-                    r.command.len(),
+                    r.command,
                     r.output.len(),
                     n
                 );

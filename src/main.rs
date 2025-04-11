@@ -76,9 +76,13 @@ fn main() -> noargs::Result<()> {
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')
-                .ty("PATH")
+                .ty("[file:]PATH | sh:COMMAND")
                 .doc(concat!(
-                    "File path to content that will be used as a resource for the conversion\n",
+                    "File path or command to be used as a resource for the conversion\n",
+                    "\n",
+                    "Prefixes:\n",
+                    "- `file:PATH` - explicitly specify a file path (default if no prefix)\n",
+                    "- `sh:COMMAND` - execute shell command and use its output\n",
                     "\n",
                     "This option can be specified multiple times"
                 ))

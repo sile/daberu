@@ -58,7 +58,7 @@ impl Resource {
                     n -= 1;
                 }
                 eprintln!(
-                    "[WARNING] Ddokosa resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
+                    "[WARNING] Dokosa resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
                     r.command(),
                     r.output.len(),
                     n

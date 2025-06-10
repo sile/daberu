@@ -1,9 +1,9 @@
 use orfail::{Failure, OrFail};
-
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::{
     command::Command,
+    curl::CurlRequest,
     message::{Message, MessageLog, Role},
 };
 
@@ -30,19 +30,19 @@ impl ChatGpt {
                 Ok(())
             })
         });
-        let response = ureq::post("https://api.openai.com/v1/chat/completions")
+
+        let response = CurlRequest::new("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
-            .header("Authorization", &format!("Bearer {}", self.api_key))
-            .send(request.to_string())
-            .or_fail()?;
-        let reply = self.handle_stream_response(response).or_fail()?;
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .post(request)?;
+
+        let reader = response.check_success()?;
+        let reply = self.handle_stream_response(reader).or_fail()?;
+
         Ok(reply)
     }
 
-    fn handle_stream_response(
-        &self,
-        response: ureq::http::response::Response<ureq::Body>,
-    ) -> orfail::Result<Message> {
+    fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
         #[derive(Debug)]
         struct Data {
             choices: Vec<Choice>,
@@ -85,7 +85,7 @@ impl ChatGpt {
         }
 
         let mut content = String::new();
-        let reader = BufReader::new(response.into_body().into_reader());
+        let reader = BufReader::new(reader);
         for line in reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {

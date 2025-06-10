@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use orfail::OrFail;
 
@@ -39,23 +39,23 @@ impl Claude {
                 Ok(())
             })
         });
-        let response = ureq::post(API_END_POINT)
+
+        let response = crate::curl::CurlRequest::new(API_END_POINT)
             .header("Content-Type", "application/json")
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", ANTHROPIC_VERSION)
-            .send(request.to_string())
-            .or_fail()?;
-        let reply = self.handle_stream_response(response).or_fail()?;
+            .post(request)?;
+
+        let reader = response.check_success()?;
+        let reply = self.handle_stream_response(reader).or_fail()?;
+
         Ok(reply)
     }
 
-    fn handle_stream_response(
-        &self,
-        response: ureq::http::response::Response<ureq::Body>,
-    ) -> orfail::Result<Message> {
+    fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
-        let reader = BufReader::new(response.into_body().into_reader());
-        for line in reader.lines() {
+        let buf_reader = BufReader::new(reader);
+        for line in buf_reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {
                 continue;

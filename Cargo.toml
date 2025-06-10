@@ -14,4 +14,3 @@ categories = ["command-line-utilities"]
 noargs = "0.3.0"
 nojson = "0.1.0"
 orfail = "1"
-ureq = "3"

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{io::Write, path::PathBuf, str::FromStr};
 
 use nojson::DisplayJson;
 use orfail::OrFail;
@@ -11,6 +11,13 @@ pub enum Resource {
 }
 
 impl Resource {
+    pub fn handle_input(&mut self, input: &str) -> orfail::Result<()> {
+        match self {
+            Resource::File(_) | Resource::Shell(_) => Ok(()),
+            Resource::Dokosa(r) => r.handle_input(input).or_fail(),
+        }
+    }
+
     pub fn truncate(&mut self, mut n: usize) {
         match self {
             Resource::File(r) => {
@@ -152,22 +159,43 @@ pub struct DokosaResource {
 
 impl DokosaResource {
     fn new(args: &str) -> orfail::Result<Self> {
-        // let output = std::process::Command::new("dokosa")
-        //     .arg("-c")
-        //     .arg(args)
-        //     .output()
-        //     .or_fail_with(|e| format!("failed to execute dokosa command {args:?}: {e}"))?;
-        // if !output.status.success() {
-        //     return Err(orfail::Failure::new(format!(
-        //         "failed to execute dokosa command {args:?}: {}",
-        //         String::from_utf8_lossy(&output.stderr)
-        //     )));
-        // }
-
         Ok(Self {
             args: args.to_owned(),
             output: String::new(),
         })
+    }
+
+    fn handle_input(&mut self, input: &str) -> orfail::Result<()> {
+        let mut child = std::process::Command::new("dokosa")
+            .args(std::iter::once("search").chain(self.args.split_ascii_whitespace()))
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .or_fail_with(|e| format!("failed to spawn dokosa command: {e}"))?;
+
+        // Write input to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(input.as_bytes())
+                .or_fail_with(|e| format!("failed to write to dokosa stdin: {e}"))?;
+            // stdin is automatically closed when it goes out of scope
+        }
+
+        // Wait for the command to complete and get output
+        let output = child
+            .wait_with_output()
+            .or_fail_with(|e| format!("failed to wait for dokosa command: {e}"))?;
+
+        if !output.status.success() {
+            return Err(orfail::Failure::new(format!(
+                "failed to execute dokosa command: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )));
+        }
+
+        self.output = String::from_utf8(output.stdout).or_fail()?;
+        Ok(())
     }
 
     fn command(&self) -> String {

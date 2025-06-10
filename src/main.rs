@@ -112,6 +112,7 @@ fn main() -> noargs::Result<()> {
     (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
 
     for r in &mut command.resources {
+        r.handle_input(&input).or_fail()?;
         r.truncate(command.resource_size_limit);
     }
 

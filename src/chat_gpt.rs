@@ -41,7 +41,8 @@ impl ChatGpt {
             .arg("@-") // Read data from stdin
             .arg("--silent")
             .arg("--show-error")
-            .arg("--no-buffer");
+            .arg("--no-buffer")
+            .arg("--fail");
 
         let mut child = cmd
             .stdin(std::process::Stdio::piped())

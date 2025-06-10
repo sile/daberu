@@ -65,7 +65,7 @@ impl CurlRequest {
 pub struct CurlResponse {
     pub status_code: u16,
     pub status_line: String,
-    pub body_reader: Box<dyn Read>,
+    pub body_reader: Box<dyn BufRead>,
 }
 
 impl CurlResponse {
@@ -100,7 +100,7 @@ impl CurlResponse {
         })
     }
 
-    pub fn check_success(self) -> orfail::Result<Box<dyn Read>> {
+    pub fn check_success(self) -> orfail::Result<Box<dyn BufRead>> {
         if self.status_code != 200 {
             // Read response body for error details
             let mut error_body = String::new();

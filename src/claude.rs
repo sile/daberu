@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, Write};
 
 use orfail::OrFail;
 
@@ -52,10 +52,9 @@ impl Claude {
         Ok(reply)
     }
 
-    fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
+    fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
-        let buf_reader = BufReader::new(reader);
-        for line in buf_reader.lines() {
+        for line in reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {
                 continue;

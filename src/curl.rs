@@ -48,6 +48,7 @@ impl CurlRequest {
         let mut writer = BufWriter::new(stdin);
         write!(writer, "{}", data).or_fail()?;
         writer.flush().or_fail()?;
+        std::mem::drop(writer);
 
         let stdout = child.stdout.take().or_fail()?;
         let output = CurlResponse::from_reader(stdout)?;

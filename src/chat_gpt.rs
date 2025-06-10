@@ -42,7 +42,7 @@ impl ChatGpt {
             .arg("--silent")
             .arg("--show-error")
             .arg("--no-buffer")
-            .arg("--fail");
+            .arg("--include");
 
         let mut child = cmd
             .stdin(std::process::Stdio::piped())
@@ -65,6 +65,38 @@ impl ChatGpt {
     }
 
     fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
+        let mut reader = BufReader::new(reader);
+        let mut first_line = String::new();
+        reader.read_line(&mut first_line).or_fail()?;
+
+        // Parse HTTP status line (e.g., "HTTP/1.1 200 OK")
+        if first_line.starts_with("HTTP/") {
+            let parts: Vec<&str> = first_line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let status_code: u16 = parts[1]
+                    .parse::<u16>()
+                    .or_fail_with(|_| format!("Invalid HTTP status code: {}", parts[1]))?;
+
+                if status_code != 200 {
+                    return Err(Failure::new(format!(
+                        "HTTP request failed with status {}: {}",
+                        status_code,
+                        first_line.trim()
+                    )));
+                }
+            }
+
+            // Skip remaining headers until we find the empty line
+            let mut line = String::new();
+            loop {
+                line.clear();
+                reader.read_line(&mut line).or_fail()?;
+                if line.trim().is_empty() {
+                    break;
+                }
+            }
+        }
+
         #[derive(Debug)]
         struct Data {
             choices: Vec<Choice>,

@@ -51,13 +51,9 @@ impl CurlRequest {
         std::mem::drop(writer);
 
         let stdout = child.stdout.take().or_fail()?;
-        let output = CurlResponse::from_reader(stdout)?;
 
-        let status = child.wait().or_fail()?;
-        status
-            .success()
-            .or_fail_with(|()| format!("curl command failed with status: {}", status))?;
-
+        // Return the response immediately without waiting for process completion
+        let output = CurlResponse::from_reader_with_child(stdout, child)?;
         Ok(output)
     }
 }
@@ -66,10 +62,14 @@ pub struct CurlResponse {
     pub status_code: u16,
     pub status_line: String,
     pub body_reader: Box<dyn BufRead>,
+    child: Option<std::process::Child>,
 }
 
 impl CurlResponse {
-    fn from_reader<R: Read + 'static>(reader: R) -> orfail::Result<Self> {
+    fn from_reader_with_child<R: Read + 'static>(
+        reader: R,
+        child: std::process::Child,
+    ) -> orfail::Result<Self> {
         let mut reader = BufReader::new(reader);
         let mut first_line = String::new();
         reader.read_line(&mut first_line).or_fail()?;
@@ -97,15 +97,21 @@ impl CurlResponse {
             status_code,
             status_line: first_line.trim().to_string(),
             body_reader: Box::new(reader),
+            child: Some(child),
         })
     }
 
-    pub fn check_success(self) -> orfail::Result<Box<dyn BufRead>> {
+    pub fn check_success(mut self) -> orfail::Result<Box<dyn BufRead>> {
         if self.status_code != 200 {
             // Read response body for error details
             let mut error_body = String::new();
             let mut reader = self.body_reader;
             reader.read_to_string(&mut error_body).or_fail()?;
+
+            // Clean up the child process
+            if let Some(mut child) = self.child.take() {
+                let _ = child.wait();
+            }
 
             return Err(Failure::new(format!(
                 "HTTP request failed with status {}: {}\n\nResponse body:\n{}",
@@ -115,6 +121,39 @@ impl CurlResponse {
             )));
         }
 
-        Ok(self.body_reader)
+        Ok(Box::new(StreamingReader {
+            reader: self.body_reader,
+            child: self.child,
+        }))
+    }
+}
+
+// Wrapper that ensures the child process is cleaned up when the reader is dropped
+struct StreamingReader {
+    reader: Box<dyn BufRead>,
+    child: Option<std::process::Child>,
+}
+
+impl BufRead for StreamingReader {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        self.reader.fill_buf()
+    }
+
+    fn consume(&mut self, amt: usize) {
+        self.reader.consume(amt)
+    }
+}
+
+impl Read for StreamingReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.reader.read(buf)
+    }
+}
+
+impl Drop for StreamingReader {
+    fn drop(&mut self) {
+        if let Some(mut child) = self.child.take() {
+            let _ = child.wait(); // Clean up the process when done
+        }
     }
 }

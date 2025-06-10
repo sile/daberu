@@ -1,5 +1,5 @@
 use orfail::{Failure, OrFail};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, Write};
 
 use crate::{
     command::Command,

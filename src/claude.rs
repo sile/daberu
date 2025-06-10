@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use orfail::OrFail;
 
@@ -39,23 +39,40 @@ impl Claude {
                 Ok(())
             })
         });
-        let response = ureq::post(API_END_POINT)
-            .header("Content-Type", "application/json")
-            .header("x-api-key", &self.api_key)
-            .header("anthropic-version", ANTHROPIC_VERSION)
-            .send(request.to_string())
-            .or_fail()?;
-        let reply = self.handle_stream_response(response).or_fail()?;
+
+        let content = request.to_string();
+
+        let mut cmd = std::process::Command::new("curl");
+        cmd.arg(API_END_POINT)
+            .arg("-H")
+            .arg("Content-Type: application/json")
+            .arg("-H")
+            .arg(format!("x-api-key: {}", self.api_key))
+            .arg("-H")
+            .arg(format!("anthropic-version: {}", ANTHROPIC_VERSION))
+            .arg("-d")
+            .arg(&content)
+            .arg("--silent")
+            .arg("--show-error")
+            .arg("--no-buffer"); // Important for streaming responses
+
+        let mut child = cmd.stdout(std::process::Stdio::piped()).spawn().or_fail()?;
+
+        let stdout = child.stdout.take().or_fail()?;
+        let reply = self.handle_stream_response(stdout).or_fail()?;
+
+        let status = child.wait().or_fail()?;
+        status
+            .success()
+            .or_fail_with(|()| format!("curl command failed with status: {}", status))?;
+
         Ok(reply)
     }
 
-    fn handle_stream_response(
-        &self,
-        response: ureq::http::response::Response<ureq::Body>,
-    ) -> orfail::Result<Message> {
+    fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
-        let reader = BufReader::new(response.into_body().into_reader());
-        for line in reader.lines() {
+        let buf_reader = BufReader::new(reader);
+        for line in buf_reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {
                 continue;

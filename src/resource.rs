@@ -7,6 +7,7 @@ use orfail::OrFail;
 pub enum Resource {
     File(FileResource),
     Shell(ShellResource),
+    Dokosa(DokosaResource),
 }
 
 impl Resource {
@@ -42,6 +43,21 @@ impl Resource {
                 );
                 r.output.truncate(n);
             }
+            Resource::Dokosa(r) => {
+                if r.output.len() <= n {
+                    return;
+                }
+                while !r.output.is_char_boundary(n) {
+                    n -= 1;
+                }
+                eprintln!(
+                    "[WARNING] Ddokosa resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
+                    r.command(),
+                    r.output.len(),
+                    n
+                );
+                r.output.truncate(n);
+            }
         }
     }
 }
@@ -52,6 +68,8 @@ impl FromStr for Resource {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(command) = s.strip_prefix("sh:") {
             ShellResource::new(command).map(Self::Shell)
+        } else if let Some(args) = s.strip_prefix("dokosa:") {
+            DokosaResource::new(args).map(Self::Dokosa)
         } else if let Some(path) = s.strip_prefix("file:") {
             FileResource::new(PathBuf::from(path)).map(Self::File)
         } else {
@@ -72,6 +90,11 @@ impl DisplayJson for Resource {
             Resource::Shell(r) => f.object(|f| {
                 f.member("type", "shell")?;
                 f.member("command", &r.command)?;
+                f.member("output", &r.output)
+            }),
+            Resource::Dokosa(r) => f.object(|f| {
+                f.member("type", "dokosa")?;
+                f.member("command", r.command())?;
                 f.member("output", &r.output)
             }),
         }
@@ -118,5 +141,40 @@ impl ShellResource {
                 format!("the output of shell command {command:?} is not a UTF-8 string: {e}")
             })?,
         })
+    }
+}
+
+#[derive(Debug)]
+pub struct DokosaResource {
+    args: String,
+    output: String,
+}
+
+impl DokosaResource {
+    fn new(args: &str) -> orfail::Result<Self> {
+        // let output = std::process::Command::new("dokosa")
+        //     .arg("-c")
+        //     .arg(args)
+        //     .output()
+        //     .or_fail_with(|e| format!("failed to execute dokosa command {args:?}: {e}"))?;
+        // if !output.status.success() {
+        //     return Err(orfail::Failure::new(format!(
+        //         "failed to execute dokosa command {args:?}: {}",
+        //         String::from_utf8_lossy(&output.stderr)
+        //     )));
+        // }
+
+        Ok(Self {
+            args: args.to_owned(),
+            output: String::new(),
+        })
+    }
+
+    fn command(&self) -> String {
+        if self.args.is_empty() {
+            format!("dokosa search")
+        } else {
+            format!("dokosa search {}", self.args)
+        }
     }
 }

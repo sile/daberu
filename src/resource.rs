@@ -200,7 +200,7 @@ impl DokosaResource {
 
     fn command(&self) -> String {
         if self.args.is_empty() {
-            format!("dokosa search")
+            "dokosa search".to_owned()
         } else {
             format!("dokosa search {}", self.args)
         }

@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 
 use orfail::OrFail;
 
@@ -40,8 +40,6 @@ impl Claude {
             })
         });
 
-        let content = request.to_string();
-
         let mut cmd = std::process::Command::new("curl");
         cmd.arg(API_END_POINT)
             .arg("-H")
@@ -51,12 +49,19 @@ impl Claude {
             .arg("-H")
             .arg(format!("anthropic-version: {}", ANTHROPIC_VERSION))
             .arg("-d")
-            .arg(&content)
+            .arg("@-") // Read data from stdin
             .arg("--silent")
             .arg("--show-error")
-            .arg("--no-buffer"); // Important for streaming responses
+            .arg("--no-buffer");
 
-        let mut child = cmd.stdout(std::process::Stdio::piped()).spawn().or_fail()?;
+        let mut child = cmd
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .or_fail()?;
+
+        let stdin = child.stdin.take().or_fail()?;
+        write!(BufWriter::new(stdin), "{}", request).or_fail()?;
 
         let stdout = child.stdout.take().or_fail()?;
         let reply = self.handle_stream_response(stdout).or_fail()?;

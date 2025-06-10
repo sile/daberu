@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use daberu::command::Command;
 use orfail::OrFail;
 
@@ -100,15 +102,19 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
-    for r in &mut command.resources {
-        r.truncate(command.resource_size_limit);
-    }
-
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());
     }
 
-    command.run().or_fail()?;
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).or_fail()?;
+    (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
+
+    for r in &mut command.resources {
+        r.truncate(command.resource_size_limit);
+    }
+
+    command.run(input).or_fail()?;
     Ok(())
 }

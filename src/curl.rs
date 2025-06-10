@@ -45,7 +45,9 @@ impl CurlRequest {
             .or_fail()?;
 
         let stdin = child.stdin.take().or_fail()?;
-        write!(BufWriter::new(stdin), "{}", data).or_fail()?;
+        let mut writer = BufWriter::new(stdin);
+        write!(writer, "{}", data).or_fail()?;
+        writer.flush().or_fail()?;
 
         let stdout = child.stdout.take().or_fail()?;
         let output = CurlResponse::from_reader(stdout)?;

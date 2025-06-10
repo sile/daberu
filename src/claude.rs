@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use orfail::OrFail;
 
@@ -40,36 +40,14 @@ impl Claude {
             })
         });
 
-        let mut cmd = std::process::Command::new("curl");
-        cmd.arg(API_END_POINT)
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-H")
-            .arg(format!("x-api-key: {}", self.api_key))
-            .arg("-H")
-            .arg(format!("anthropic-version: {}", ANTHROPIC_VERSION))
-            .arg("-d")
-            .arg("@-") // Read data from stdin
-            .arg("--silent")
-            .arg("--show-error")
-            .arg("--no-buffer");
+        let response = crate::curl::CurlRequest::new(API_END_POINT)
+            .header("Content-Type", "application/json")
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", ANTHROPIC_VERSION)
+            .post(request)?;
 
-        let mut child = cmd
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .or_fail()?;
-
-        let stdin = child.stdin.take().or_fail()?;
-        write!(BufWriter::new(stdin), "{}", request).or_fail()?;
-
-        let stdout = child.stdout.take().or_fail()?;
-        let reply = self.handle_stream_response(stdout).or_fail()?;
-
-        let status = child.wait().or_fail()?;
-        status
-            .success()
-            .or_fail_with(|()| format!("curl command failed with status: {}", status))?;
+        let reader = response.check_success()?;
+        let reply = self.handle_stream_response(reader).or_fail()?;
 
         Ok(reply)
     }

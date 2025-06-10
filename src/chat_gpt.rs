@@ -34,12 +34,7 @@ impl ChatGpt {
         let response = CurlRequest::new("https://api.openai.com/v1/chat/completions")
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .data(request.to_string())
-            .silent(true)
-            .show_error(true)
-            .no_buffer(true)
-            .include_headers(true)
-            .execute()?;
+            .post(request)?;
 
         let reader = response.check_success()?;
         let reply = self.handle_stream_response(reader).or_fail()?;

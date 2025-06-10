@@ -1,14 +1,12 @@
 use orfail::{Failure, OrFail};
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::{
+    fmt::Display,
+    io::{BufRead, BufReader, BufWriter, Read, Write},
+};
 
 pub struct CurlRequest {
     url: String,
     headers: Vec<(String, String)>,
-    data: Option<String>,
-    silent: bool,
-    show_error: bool,
-    no_buffer: bool,
-    include_headers: bool,
 }
 
 impl CurlRequest {
@@ -16,11 +14,6 @@ impl CurlRequest {
         Self {
             url: url.into(),
             headers: Vec::new(),
-            data: None,
-            silent: false,
-            show_error: false,
-            no_buffer: false,
-            include_headers: false,
         }
     }
 
@@ -29,32 +22,7 @@ impl CurlRequest {
         self
     }
 
-    pub fn data(mut self, data: impl Into<String>) -> Self {
-        self.data = Some(data.into());
-        self
-    }
-
-    pub fn silent(mut self, silent: bool) -> Self {
-        self.silent = silent;
-        self
-    }
-
-    pub fn show_error(mut self, show_error: bool) -> Self {
-        self.show_error = show_error;
-        self
-    }
-
-    pub fn no_buffer(mut self, no_buffer: bool) -> Self {
-        self.no_buffer = no_buffer;
-        self
-    }
-
-    pub fn include_headers(mut self, include_headers: bool) -> Self {
-        self.include_headers = include_headers;
-        self
-    }
-
-    pub fn execute(self) -> orfail::Result<CurlResponse> {
+    pub fn post(self, data: impl Display) -> orfail::Result<CurlResponse> {
         let mut cmd = std::process::Command::new("curl");
         cmd.arg(&self.url);
 
@@ -63,24 +31,12 @@ impl CurlRequest {
             cmd.arg("-H").arg(format!("{}: {}", name, value));
         }
 
-        // Add data if present
-        if self.data.is_some() {
-            cmd.arg("-d").arg("@-"); // Read data from stdin
-        }
-
         // Add flags
-        if self.silent {
-            cmd.arg("--silent");
-        }
-        if self.show_error {
-            cmd.arg("--show-error");
-        }
-        if self.no_buffer {
-            cmd.arg("--no-buffer");
-        }
-        if self.include_headers {
-            cmd.arg("--include");
-        }
+        cmd.arg("-d").arg("@-"); // Read data from stdin
+        cmd.arg("--silent");
+        cmd.arg("--show-error");
+        cmd.arg("--no-buffer");
+        cmd.arg("--include");
 
         let mut child = cmd
             .stdin(std::process::Stdio::piped())
@@ -88,11 +44,8 @@ impl CurlRequest {
             .spawn()
             .or_fail()?;
 
-        // Write data to stdin if present
-        if let Some(data) = &self.data {
-            let stdin = child.stdin.take().or_fail()?;
-            write!(BufWriter::new(stdin), "{}", data).or_fail()?;
-        }
+        let stdin = child.stdin.take().or_fail()?;
+        write!(BufWriter::new(stdin), "{}", data).or_fail()?;
 
         let stdout = child.stdout.take().or_fail()?;
         let output = CurlResponse::from_reader(stdout)?;

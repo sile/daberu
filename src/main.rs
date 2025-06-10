@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use daberu::command::Command;
 use orfail::OrFail;
 
@@ -47,16 +45,14 @@ fn main() -> noargs::Result<()> {
             ))
             .take(&mut args)
             .is_present(),
-        models: noargs::opt("model")
+        model: noargs::opt("model")
             .short('m')
             .ty("[PROVIDER:]MODEL_NAME")
             .default("gpt-4o")
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)
-            .then(|a| -> Result<_, Infallible> {
-                Ok(a.value().split(',').map(String::from).collect())
-            })?,
+            .then(|a| a.value().parse())?,
         system: noargs::opt("system")
             .short('s')
             .ty("STRING")

@@ -89,10 +89,15 @@ impl ChatGpt {
             .or_fail_with(|_| format!("Invalid HTTP status code: {}", parts[1]))?;
 
         if status_code != 200 {
+            // Read response body for error details
+            let mut error_body = String::new();
+            reader.read_to_string(&mut error_body).or_fail()?;
+
             return Err(Failure::new(format!(
-                "HTTP request failed with status {}: {}",
+                "HTTP request failed with status {}: {}\n\nResponse body:\n{}",
                 status_code,
-                first_line.trim()
+                first_line.trim(),
+                error_body.trim()
             )));
         }
 

@@ -1,9 +1,9 @@
 use orfail::{Failure, OrFail};
-
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::{
     command::Command,
+    curl::CurlRequest,
     message::{Message, MessageLog, Role},
 };
 
@@ -31,76 +31,23 @@ impl ChatGpt {
             })
         });
 
-        let mut cmd = std::process::Command::new("curl");
-        cmd.arg("https://api.openai.com/v1/chat/completions")
-            .arg("-H")
-            .arg("Content-Type: application/json")
-            .arg("-H")
-            .arg(format!("Authorization: Bearer {}", self.api_key))
-            .arg("-d")
-            .arg("@-") // Read data from stdin
-            .arg("--silent")
-            .arg("--show-error")
-            .arg("--no-buffer")
-            .arg("--include");
+        let response = CurlRequest::new("https://api.openai.com/v1/chat/completions")
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .data(request.to_string())
+            .silent(true)
+            .show_error(true)
+            .no_buffer(true)
+            .include_headers(true)
+            .execute()?;
 
-        let mut child = cmd
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .or_fail()?;
-
-        let stdin = child.stdin.take().or_fail()?;
-        write!(BufWriter::new(stdin), "{}", request).or_fail()?;
-
-        let stdout = child.stdout.take().or_fail()?;
-        let reply = self.handle_stream_response(stdout).or_fail()?;
-
-        let status = child.wait().or_fail()?;
-        status
-            .success()
-            .or_fail_with(|()| format!("curl command failed with status: {}", status))?;
+        let reader = response.check_success()?;
+        let reply = self.handle_stream_response(reader).or_fail()?;
 
         Ok(reply)
     }
 
     fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
-        let mut reader = BufReader::new(reader);
-        let mut first_line = String::new();
-        reader.read_line(&mut first_line).or_fail()?;
-
-        // Parse HTTP status line (e.g., "HTTP/1.1 200 OK")
-        first_line.starts_with("HTTP/").or_fail()?;
-
-        // Skip remaining headers until we find the empty line
-        let mut line = String::new();
-        loop {
-            line.clear();
-            reader.read_line(&mut line).or_fail()?;
-            if line.trim().is_empty() {
-                break;
-            }
-        }
-
-        let parts: Vec<&str> = first_line.split_whitespace().collect();
-        (parts.len() >= 2).or_fail()?;
-        let status_code: u16 = parts[1]
-            .parse::<u16>()
-            .or_fail_with(|_| format!("Invalid HTTP status code: {}", parts[1]))?;
-
-        if status_code != 200 {
-            // Read response body for error details
-            let mut error_body = String::new();
-            reader.read_to_string(&mut error_body).or_fail()?;
-
-            return Err(Failure::new(format!(
-                "HTTP request failed with status {}: {}\n\nResponse body:\n{}",
-                status_code,
-                first_line.trim(),
-                error_body.trim()
-            )));
-        }
-
         #[derive(Debug)]
         struct Data {
             choices: Vec<Choice>,

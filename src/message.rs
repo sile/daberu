@@ -1,7 +1,4 @@
-use std::{
-    io::{Read, Write},
-    path::Path,
-};
+use std::{io::Write, path::Path};
 
 use orfail::OrFail;
 
@@ -128,11 +125,7 @@ impl MessageLog {
         Ok(())
     }
 
-    pub fn read_input(&mut self, resources: &[Resource]) -> orfail::Result<()> {
-        let mut input = String::new();
-        std::io::stdin().read_to_string(&mut input).or_fail()?;
-        (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
-
+    pub fn read_input(&mut self, mut input: String, resources: &[Resource]) -> orfail::Result<()> {
         if !resources.is_empty() {
             input.push_str(
                 r#"

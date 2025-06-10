@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use daberu::command::Command;
 use orfail::OrFail;
 
@@ -72,13 +74,14 @@ fn main() -> noargs::Result<()> {
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')
-                .ty("[file:]PATH | sh:COMMAND")
+                .ty("[file:]PATH | sh:COMMAND | dokosa:[ARGS]")
                 .doc(concat!(
                     "File path or command to be used as a resource for the conversion\n",
                     "\n",
                     "Prefixes:\n",
                     "- `file:PATH` - explicitly specify a file path (default if no prefix)\n",
                     "- `sh:COMMAND` - execute shell command and use its output\n",
+                    "- `dokosa:ARGS` - execute dokosa search command and use its output\n",
                     "\n",
                     "This option can be specified multiple times"
                 ))
@@ -99,15 +102,20 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
-    for r in &mut command.resources {
-        r.truncate(command.resource_size_limit);
-    }
-
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());
     }
 
-    command.run().or_fail()?;
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input).or_fail()?;
+    (!input.is_empty()).or_fail_with(|()| "empty input message".to_owned())?;
+
+    for r in &mut command.resources {
+        r.handle_input(&input).or_fail()?;
+        r.truncate(command.resource_size_limit);
+    }
+
+    command.run(input).or_fail()?;
     Ok(())
 }

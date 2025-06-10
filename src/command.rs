@@ -18,7 +18,7 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn run(self) -> orfail::Result<()> {
+    pub fn run(self, input: String) -> orfail::Result<()> {
         self.check_api_key().or_fail()?;
 
         let mut gist_offset = 0;
@@ -40,7 +40,7 @@ impl Command {
         if let Some(system) = &self.system {
             log.set_system_message_if_empty(system);
         }
-        log.read_input(&self.resources).or_fail()?;
+        log.read_input(input, &self.resources).or_fail()?;
 
         let model = &self.model;
         let output = if model.starts_with("gpt") || model.starts_with("openai:") {

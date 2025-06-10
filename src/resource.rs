@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{io::Write, path::PathBuf, str::FromStr};
 
 use nojson::DisplayJson;
 use orfail::OrFail;
@@ -7,9 +7,17 @@ use orfail::OrFail;
 pub enum Resource {
     File(FileResource),
     Shell(ShellResource),
+    Dokosa(DokosaResource),
 }
 
 impl Resource {
+    pub fn handle_input(&mut self, input: &str) -> orfail::Result<()> {
+        match self {
+            Resource::File(_) | Resource::Shell(_) => Ok(()),
+            Resource::Dokosa(r) => r.handle_input(input).or_fail(),
+        }
+    }
+
     pub fn truncate(&mut self, mut n: usize) {
         match self {
             Resource::File(r) => {
@@ -42,6 +50,21 @@ impl Resource {
                 );
                 r.output.truncate(n);
             }
+            Resource::Dokosa(r) => {
+                if r.output.len() <= n {
+                    return;
+                }
+                while !r.output.is_char_boundary(n) {
+                    n -= 1;
+                }
+                eprintln!(
+                    "[WARNING] Dokosa resource (`{}`) exceeds size limit (truncated): size={}, limit={}",
+                    r.command(),
+                    r.output.len(),
+                    n
+                );
+                r.output.truncate(n);
+            }
         }
     }
 }
@@ -52,6 +75,8 @@ impl FromStr for Resource {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(command) = s.strip_prefix("sh:") {
             ShellResource::new(command).map(Self::Shell)
+        } else if let Some(args) = s.strip_prefix("dokosa:") {
+            DokosaResource::new(args).map(Self::Dokosa)
         } else if let Some(path) = s.strip_prefix("file:") {
             FileResource::new(PathBuf::from(path)).map(Self::File)
         } else {
@@ -72,6 +97,11 @@ impl DisplayJson for Resource {
             Resource::Shell(r) => f.object(|f| {
                 f.member("type", "shell")?;
                 f.member("command", &r.command)?;
+                f.member("output", &r.output)
+            }),
+            Resource::Dokosa(r) => f.object(|f| {
+                f.member("type", "dokosa")?;
+                f.member("command", r.command())?;
                 f.member("output", &r.output)
             }),
         }
@@ -118,5 +148,61 @@ impl ShellResource {
                 format!("the output of shell command {command:?} is not a UTF-8 string: {e}")
             })?,
         })
+    }
+}
+
+#[derive(Debug)]
+pub struct DokosaResource {
+    args: String,
+    output: String,
+}
+
+impl DokosaResource {
+    fn new(args: &str) -> orfail::Result<Self> {
+        Ok(Self {
+            args: args.to_owned(),
+            output: String::new(),
+        })
+    }
+
+    fn handle_input(&mut self, input: &str) -> orfail::Result<()> {
+        let mut child = std::process::Command::new("dokosa")
+            .args(std::iter::once("search").chain(self.args.split_ascii_whitespace()))
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .or_fail_with(|e| format!("failed to spawn dokosa command: {e}"))?;
+
+        // Write input to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(input.as_bytes())
+                .or_fail_with(|e| format!("failed to write to dokosa stdin: {e}"))?;
+            // stdin is automatically closed when it goes out of scope
+        }
+
+        // Wait for the command to complete and get output
+        let output = child
+            .wait_with_output()
+            .or_fail_with(|e| format!("failed to wait for dokosa command: {e}"))?;
+
+        if !output.status.success() {
+            return Err(orfail::Failure::new(format!(
+                "failed to execute dokosa command: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )));
+        }
+
+        self.output = String::from_utf8(output.stdout).or_fail()?;
+        Ok(())
+    }
+
+    fn command(&self) -> String {
+        if self.args.is_empty() {
+            "dokosa search".to_owned()
+        } else {
+            format!("dokosa search {}", self.args)
+        }
     }
 }

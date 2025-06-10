@@ -42,7 +42,7 @@ impl ChatGpt {
         Ok(reply)
     }
 
-    fn handle_stream_response<R: Read>(&self, reader: R) -> orfail::Result<Message> {
+    fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
         #[derive(Debug)]
         struct Data {
             choices: Vec<Choice>,
@@ -85,7 +85,6 @@ impl ChatGpt {
         }
 
         let mut content = String::new();
-        let reader = BufReader::new(reader);
         for line in reader.lines() {
             let line = line.or_fail()?;
             if line.is_empty() {

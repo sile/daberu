@@ -16,24 +16,19 @@ ChatGPT / Claude client tool that reads your message from stdin and writes the r
 Usage: daberu [OPTIONS]
 
 Options:
-      --openai-api-key <OPENAI_API_KEY>
-          OpenAI API key [env: OPENAI_API_KEY]
-      --anthropic-api-key <ANTHROPIC_API_KEY>
-          Anthropic API key [env: ANTHROPIC_API_KEY]
-      --log <LOG>
-          Path to log file for saving conversation history. If the file already exists, its contents are included in subsequent conversations
-      --oneshot-log <DABERU_ONESHOT_LOG_PATH>
-          Specifies a path for a "one-shot" conversation log file which will overwrite any existing file content upon opening
-      --model <MODEL>
-          Model name [env: DABERU_MODEL=] [default: gpt-4o]
-      --system <SYSTEM_MESSAGE>
-          System message [env: DABERU_SYSTEM_MESSAGE=]
-      --gist <new | EXISTING_GIST_ID>
-          Save the output to GitHub Gist
-  -h, --help
-          Print help (see more with '--help')
-  -V, --version
-          Print version
+      --version                         Print version
+  -h, --help                            Print help ('--help' for full help, '-h' for summary)
+      --openai-api-key <STRING>         OpenAI API key [env: OPENAI_API_KEY]
+      --anthropic-api-key <STRING>      Anthropic API key [env: ANTHROPIC_API_KEY]
+  -l, --log <PATH>                      Path to log file for saving the last conversation [env: DABERU_LOG_PATH]
+  -c, --continue                        Continue conversation from the existing log file instead of truncating it
+  -m, --model <[PROVIDER:]MODEL_NAME>   Model name [env: DABERU_MODEL] [default: gpt-4o]
+  -s, --system <STRING>                 System message
+      --gist <new | EXISTING_GIST_ID>   Save the output to GitHub Gist
+  -r, --resource <PATH>                 File path to be used as a resource for the conversion
+      --resource-size-limit <BYTE_SIZE> Maximum byte size per resource [env: DABERU_RESOURCE_SIZE_LIMIT] [default: 100000]
+      --shell-executable <SHELL>        Shell executable to use for running shell commands [env: DABERU_SHELL_EXECUTABLE] [default: sh]
+  -e, --shell-command <COMMAND>         Shell command to be used as a resource for the conversion
 ```
 
 Installation

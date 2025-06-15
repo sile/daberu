@@ -1,6 +1,9 @@
 use std::io::Read;
 
-use daberu::command::Command;
+use daberu::{
+    command::Command,
+    resource::{FileResource, Resource, ShellResource},
+};
 use orfail::OrFail;
 
 fn main() -> noargs::Result<()> {
@@ -74,19 +77,14 @@ fn main() -> noargs::Result<()> {
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')
-                .ty("[file:]PATH | sh:COMMAND | dokosa:[ARGS]")
+                .ty("PATH")
                 .doc(concat!(
-                    "File path or command to be used as a resource for the conversion\n",
-                    "\n",
-                    "Prefixes:\n",
-                    "- `file:PATH` - explicitly specify a file path (default if no prefix)\n",
-                    "- `sh:COMMAND` - execute shell command and use its output\n",
-                    "- `dokosa:ARGS` - execute dokosa search command and use its output\n",
+                    "File path to be used as a resource for the conversion\n",
                     "\n",
                     "This option can be specified multiple times"
                 ))
                 .take(&mut args)
-                .present_and_then(|a| a.value().parse())
+                .present_and_then(|a| FileResource::new(a.value()).map(Resource::File))
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
@@ -102,6 +100,31 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
+
+    let shell = noargs::opt("shell-executable")
+        .ty("SHELL")
+        .default("sh")
+        .env("DABERU_SHELL_EXECUTABLE")
+        .doc("Shell executable to use for running shell commands")
+        .take(&mut args)
+        .value()
+        .to_owned();
+
+    while let Some(a) = noargs::opt("shell-command")
+        .short('e')
+        .ty("COMMAND")
+        .doc(concat!(
+            "Shell command to be used as a resource for the conversion\n",
+            "\n",
+            "This option can be specified multiple times"
+        ))
+        .take(&mut args)
+        .present()
+    {
+        command
+            .resources
+            .push(Resource::Shell(ShellResource::new(&shell, a.value())));
+    }
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());

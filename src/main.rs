@@ -1,6 +1,9 @@
 use std::io::Read;
 
-use daberu::command::Command;
+use daberu::{
+    command::Command,
+    resource::{FileResource, Resource},
+};
 use orfail::OrFail;
 
 fn main() -> noargs::Result<()> {
@@ -74,19 +77,14 @@ fn main() -> noargs::Result<()> {
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')
-                .ty("[file:]PATH | sh:COMMAND | dokosa:[ARGS]")
+                .ty("PATH")
                 .doc(concat!(
-                    "File path or command to be used as a resource for the conversion\n",
-                    "\n",
-                    "Prefixes:\n",
-                    "- `file:PATH` - explicitly specify a file path (default if no prefix)\n",
-                    "- `sh:COMMAND` - execute shell command and use its output\n",
-                    "- `dokosa:ARGS` - execute dokosa search command and use its output\n",
+                    "File path to be used as a resource for the conversion\n",
                     "\n",
                     "This option can be specified multiple times"
                 ))
                 .take(&mut args)
-                .present_and_then(|a| a.value().parse())
+                .present_and_then(|a| FileResource::new(a.value()).map(Resource::File))
                 .transpose()
         })
         .collect::<Result<_, _>>()?,

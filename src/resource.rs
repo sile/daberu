@@ -1,4 +1,8 @@
-use std::{io::Write, path::PathBuf, str::FromStr};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use nojson::DisplayJson;
 use orfail::OrFail;
@@ -115,7 +119,8 @@ pub struct FileResource {
 }
 
 impl FileResource {
-    fn new(path: PathBuf) -> orfail::Result<Self> {
+    pub fn new<P: AsRef<Path>>(path: P) -> orfail::Result<Self> {
+        let path = path.as_ref().to_path_buf();
         let content = std::fs::read_to_string(&path)
             .or_fail_with(|e| format!("failed to read resource file {}: {e}", path.display()))?;
         Ok(Self { path, content })

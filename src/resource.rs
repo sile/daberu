@@ -1,7 +1,6 @@
 use std::{
     io::Write,
     path::{Path, PathBuf},
-    str::FromStr,
 };
 
 use nojson::DisplayJson;
@@ -73,23 +72,6 @@ impl Resource {
     }
 }
 
-impl FromStr for Resource {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(command) = s.strip_prefix("sh:") {
-            ShellResource::new(command).map(Self::Shell)
-        } else if let Some(args) = s.strip_prefix("dokosa:") {
-            DokosaResource::new(args).map(Self::Dokosa)
-        } else if let Some(path) = s.strip_prefix("file:") {
-            FileResource::new(PathBuf::from(path)).map(Self::File)
-        } else {
-            FileResource::new(PathBuf::from(s)).map(Self::File)
-        }
-        .map_err(|e| e.message)
-    }
-}
-
 impl DisplayJson for Resource {
     fn fmt(&self, f: &mut nojson::JsonFormatter<'_, '_>) -> std::fmt::Result {
         match self {
@@ -134,25 +116,26 @@ pub struct ShellResource {
 }
 
 impl ShellResource {
-    fn new(command: &str) -> orfail::Result<Self> {
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()
-            .or_fail_with(|e| format!("failed to execute shell command {command:?}: {e}"))?;
-        if !output.status.success() {
-            return Err(orfail::Failure::new(format!(
-                "failed to execute shell command {command:?}: {}",
-                String::from_utf8_lossy(&output.stderr)
-            )));
-        }
+    pub fn new(command: &str) -> Self {
+        // let output = std::process::Command::new("sh")
+        //     .arg("-c")
+        //     .arg(command)
+        //     .output()
+        //     .or_fail_with(|e| format!("failed to execute shell command {command:?}: {e}"))?;
+        // if !output.status.success() {
+        //     return Err(orfail::Failure::new(format!(
+        //         "failed to execute shell command {command:?}: {}",
+        //         String::from_utf8_lossy(&output.stderr)
+        //     )));
+        // }
 
-        Ok(Self {
+        Self {
             command: command.to_owned(),
-            output: String::from_utf8(output.stdout).or_fail_with(|e| {
-                format!("the output of shell command {command:?} is not a UTF-8 string: {e}")
-            })?,
-        })
+            // output: String::from_utf8(output.stdout).or_fail_with(|e| {
+            //     format!("the output of shell command {command:?} is not a UTF-8 string: {e}")
+            // })?,
+            output: String::new(),
+        }
     }
 }
 
@@ -163,13 +146,6 @@ pub struct DokosaResource {
 }
 
 impl DokosaResource {
-    fn new(args: &str) -> orfail::Result<Self> {
-        Ok(Self {
-            args: args.to_owned(),
-            output: String::new(),
-        })
-    }
-
     fn handle_input(&mut self, input: &str) -> orfail::Result<()> {
         let mut child = std::process::Command::new("dokosa")
             .args(std::iter::once("search").chain(self.args.split_ascii_whitespace()))

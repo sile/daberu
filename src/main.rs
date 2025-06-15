@@ -2,7 +2,7 @@ use std::io::Read;
 
 use daberu::{
     command::Command,
-    resource::{FileResource, Resource},
+    resource::{FileResource, Resource, ShellResource},
 };
 use orfail::OrFail;
 
@@ -100,6 +100,21 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
+    while let Some(a) = noargs::opt("external-command-resource")
+        .short('e')
+        .ty("PATH")
+        .doc(concat!(
+            "Shell command to be used as a resource for the conversion\n",
+            "\n",
+            "This option can be specified multiple times"
+        ))
+        .take(&mut args)
+        .present()
+    {
+        command
+            .resources
+            .push(Resource::Shell(ShellResource::new(a.value())));
+    }
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());

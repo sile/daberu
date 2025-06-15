@@ -100,9 +100,9 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
-    while let Some(a) = noargs::opt("external-command-resource")
+    while let Some(a) = noargs::opt("shell")
         .short('e')
-        .ty("PATH")
+        .ty("COMMAND")
         .doc(concat!(
             "Shell command to be used as a resource for the conversion\n",
             "\n",

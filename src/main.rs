@@ -100,7 +100,17 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
-    while let Some(a) = noargs::opt("shell")
+
+    let shell = noargs::opt("shell-executable")
+        .ty("SHELL")
+        .default("sh")
+        .env("DABERU_SHELL_EXECUTABLE")
+        .doc("Shell executable to use for running shell commands")
+        .take(&mut args)
+        .value()
+        .to_owned();
+
+    while let Some(a) = noargs::opt("shell-command")
         .short('e')
         .ty("COMMAND")
         .doc(concat!(
@@ -113,7 +123,7 @@ fn main() -> noargs::Result<()> {
     {
         command
             .resources
-            .push(Resource::Shell(ShellResource::new(a.value())));
+            .push(Resource::Shell(ShellResource::new(&shell, a.value())));
     }
     if let Some(help) = args.finish()? {
         print!("{help}");

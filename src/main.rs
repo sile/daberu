@@ -64,6 +64,15 @@ fn main() -> noargs::Result<()> {
             .doc("System message")
             .take(&mut args)
             .present_and_then(|a| a.value().parse())?,
+        fixtodo: noargs::flag("fix-todo")
+            .short('f')
+            .doc(concat!(
+                "Shorthand for setting system message to 'Fix TODO'\n",
+                "\n",
+                "If `--system` is explicitly specified, this flag is ignored."
+            ))
+            .take(&mut args)
+            .is_present(),
         gist: noargs::opt("gist")
             .ty("new | EXISTING_GIST_ID")
             .doc(concat!(

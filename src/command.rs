@@ -12,6 +12,7 @@ pub struct Command {
     pub continue_from_log: bool,
     pub model: String,
     pub system: Option<String>,
+    pub fixtodo: bool,
     pub gist: Option<String>,
     pub resources: Vec<Resource>,
     pub resource_size_limit: usize,
@@ -39,6 +40,8 @@ impl Command {
         }
         if let Some(system) = &self.system {
             log.set_system_message_if_empty(system);
+        } else if self.fixtodo {
+            log.set_system_message_if_empty("Fix TODO");
         }
         log.read_input(input, &self.resources).or_fail()?;
 

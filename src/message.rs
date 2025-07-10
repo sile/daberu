@@ -69,14 +69,14 @@ impl Role {
             Role::Assistant => "assistant",
         };
         if let Some(model) = model {
-            format!("{:03}_{}_{}.md", i, name, model)
+            format!("{i:03}_{name}_{model}.md")
         } else {
-            format!("{:03}_{}.md", i, name)
+            format!("{i:03}_{name}.md")
         }
     }
 
     pub fn from_gist_filename(filename: &str, i: usize) -> orfail::Result<(Self, Option<String>)> {
-        let prefix = format!("{:03}_", i);
+        let prefix = format!("{i:03}_");
         (filename.starts_with(&prefix) && filename.ends_with(".md"))
             .or_fail_with(|()| format!("unexpected gist filename: {filename}"))?;
         let mut tokens = filename[4..filename.len() - 3].splitn(2, '_');

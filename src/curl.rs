@@ -28,7 +28,7 @@ impl CurlRequest {
 
         // Add headers
         for (name, value) in &self.headers {
-            cmd.arg("-H").arg(format!("{}: {}", name, value));
+            cmd.arg("-H").arg(format!("{name}: {value}"));
         }
 
         // Add flags
@@ -46,7 +46,7 @@ impl CurlRequest {
 
         let stdin = child.stdin.take().or_fail()?;
         let mut writer = BufWriter::new(stdin);
-        write!(writer, "{}", data).or_fail()?;
+        write!(writer, "{data}").or_fail()?;
         writer.flush().or_fail()?;
         std::mem::drop(writer);
 

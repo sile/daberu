@@ -2,11 +2,10 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{chat_gpt::ChatGpt, claude::Claude, gist, message::MessageLog, resource::Resource};
+use crate::{claude::Claude, gist, message::MessageLog, resource::Resource};
 
 #[derive(Debug)]
 pub struct Command {
-    pub openai_api_key: Option<String>,
     pub anthropic_api_key: Option<String>,
     pub log: Option<PathBuf>,
     pub continue_from_log: bool,
@@ -19,8 +18,6 @@ pub struct Command {
 
 impl Command {
     pub fn run(self, input: String) -> orfail::Result<()> {
-        self.check_api_key().or_fail()?;
-
         let mut gist_offset = 0;
         let mut log = self
             .log
@@ -42,20 +39,8 @@ impl Command {
         }
         log.read_input(input, &self.resources).or_fail()?;
 
-        let model = &self.model;
-        let output = if model.starts_with("gpt") || model.starts_with("openai:") {
-            let model = model.strip_prefix("openai:").unwrap_or(model).to_owned();
-            let c = ChatGpt::new(&self, model).or_fail()?;
-            let log = log.strip_model_name();
-            c.run(&log).or_fail()?
-        } else if model.starts_with("claude") || model.starts_with("anthropic:") {
-            let model = model.strip_prefix("anthropic:").unwrap_or(model).to_owned();
-            let c = Claude::new(&self, model).or_fail()?;
-            let log = log.strip_model_name();
-            c.run(&log).or_fail()?
-        } else {
-            unreachable!()
-        };
+        let c = Claude::new(&self, self.model.clone()).or_fail()?;
+        let output = c.run(&log.strip_model_name()).or_fail()?;
         log.messages.push(output);
 
         if let Some(path) = self.log {
@@ -73,22 +58,6 @@ impl Command {
             None => {}
         }
 
-        Ok(())
-    }
-
-    fn check_api_key(&self) -> orfail::Result<()> {
-        let model = &self.model;
-        if model.starts_with("gpt") || model.starts_with("openai:") {
-            self.openai_api_key
-                .is_some()
-                .or_fail_with(|()| "OpenAI API key is not specified".to_owned())?;
-        } else if model.starts_with("claude") || model.starts_with("anthropic:") {
-            self.anthropic_api_key
-                .is_some()
-                .or_fail_with(|()| "Anthropic API key is not specified".to_owned())?;
-        } else {
-            return Err(orfail::Failure::new(format!("unknown model: {model}")));
-        }
         Ok(())
     }
 }

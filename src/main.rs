@@ -18,12 +18,6 @@ fn main() -> noargs::Result<()> {
     noargs::HELP_FLAG.take_help(&mut args);
 
     let mut command = Command {
-        openai_api_key: noargs::opt("openai-api-key")
-            .ty("STRING")
-            .env("OPENAI_API_KEY")
-            .doc("OpenAI API key")
-            .take(&mut args)
-            .present_and_then(|a| a.value().parse())?,
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")
             .env("ANTHROPIC_API_KEY")
@@ -52,8 +46,8 @@ fn main() -> noargs::Result<()> {
             .is_present(),
         model: noargs::opt("model")
             .short('m')
-            .ty("[PROVIDER:]MODEL_NAME")
-            .default("gpt-4o")
+            .ty("MODEL_NAME")
+            .default("claude-sonnet-4-20250514")
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)

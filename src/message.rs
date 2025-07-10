@@ -31,11 +31,14 @@ impl nojson::DisplayJson for Message {
     }
 }
 
-impl<'text> nojson::FromRawJsonValue<'text> for Message {
-    fn from_raw_json_value(
-        value: nojson::RawJsonValue<'text, '_>,
-    ) -> Result<Self, nojson::JsonParseError> {
-        let ([role, content], [model]) = value.to_fixed_object(["role", "content"], ["model"])?;
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Message {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
+        let role = value.to_member("role")?.required()?;
+        let content = value.to_member("content")?.required()?;
+        let model = value.to_member("model")?;
+
         Ok(Self {
             role: match role.to_unquoted_string_str()?.as_ref() {
                 "system" => Role::System,
@@ -48,8 +51,8 @@ impl<'text> nojson::FromRawJsonValue<'text> for Message {
                     ));
                 }
             },
-            content: content.try_to()?,
-            model: model.map(|m| m.try_to()).transpose()?,
+            content: content.try_into()?,
+            model: model.try_into()?,
         })
     }
 }

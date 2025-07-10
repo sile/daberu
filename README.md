@@ -33,7 +33,7 @@ Options:
 Installation
 ------------
 
-```cosnole
+```console
 $ cargo install daberu
 
 $ export ANTHROPIC_API_KEY="YOUR API KEY"

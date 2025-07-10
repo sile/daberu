@@ -12,5 +12,5 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 noargs = "0.4.0"
-nojson = "0.1.0"
+nojson = "0.2.0"
 orfail = "1"

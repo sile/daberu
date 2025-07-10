@@ -117,47 +117,41 @@ enum Data {
     Error { error: String },
 }
 
-impl<'text> nojson::FromRawJsonValue<'text> for Data {
-    fn from_raw_json_value(
-        value: nojson::RawJsonValue<'text, '_>,
-    ) -> Result<Self, nojson::JsonParseError> {
-        let ([ty], []) = value.to_fixed_object(["type"], [])?;
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
+        let ty = value.to_member("type")?.required()?;
         match ty.to_unquoted_string_str()?.as_ref() {
-            "message_start" => {
-                let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
-                Ok(Self::MessageStart {
-                    stop_reason: stop_reason.map(|v| v.try_to()).transpose()?,
-                })
-            }
-            "message_delta" => {
-                let ([], [stop_reason]) = value.to_fixed_object([], ["stop_reason"])?;
-                Ok(Self::MessageDelta {
-                    stop_reason: stop_reason.map(|v| v.try_to()).transpose()?,
-                })
-            }
+            "message_start" => Ok(Self::MessageStart {
+                stop_reason: value.to_member("stop_reason")?.try_into()?,
+            }),
+            "message_delta" => Ok(Self::MessageDelta {
+                stop_reason: value.to_member("stop_reason")?.try_into()?,
+            }),
             "message_stop" => Ok(Self::MessageStop),
             "content_block_start" => {
-                let ([content_block], []) = value.to_fixed_object(["content_block"], [])?;
-                let ([text], []) = content_block.to_fixed_object(["text"], [])?;
+                let content_block = value.to_member("content_block")?.required()?;
+                let text = content_block.to_member("text")?.required()?;
                 Ok(Self::ContentBlockStart {
                     content_block: ContentBlock {
-                        text: text.try_to()?,
+                        text: text.try_into()?,
                     },
                 })
             }
             "content_block_delta" => {
-                let ([delta], []) = value.to_fixed_object(["delta"], [])?;
-                let ([text], []) = delta.to_fixed_object(["text"], [])?;
+                let delta = value.to_member("delta")?.required()?;
+                let text = delta.to_member("text")?.required()?;
                 Ok(Self::ContentBlockDelta {
                     delta: Delta {
-                        text: text.try_to()?,
+                        text: text.try_into()?,
                     },
                 })
             }
             "content_block_stop" => Ok(Self::ContentBlockStop),
             "ping" => Ok(Self::Ping),
             "error" => {
-                let ([error], []) = value.to_fixed_object(["error"], [])?;
+                let error = value.to_member("error")?.required()?;
                 Ok(Self::Error {
                     error: error.to_string(),
                 })

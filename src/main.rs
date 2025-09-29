@@ -47,7 +47,7 @@ fn main() -> noargs::Result<()> {
         model: noargs::opt("model")
             .short('m')
             .ty("MODEL_NAME")
-            .default("claude-sonnet-4-20250514")
+            .default("claude-sonnet-4-5")
             .env("DABERU_MODEL")
             .doc("Model name")
             .take(&mut args)

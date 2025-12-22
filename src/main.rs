@@ -23,7 +23,7 @@ fn main() -> noargs::Result<()> {
         .take(&mut args)
         .is_present();
     if enable_subcommand {
-        if noargs::cmd("view").doc("TODO").take(&mut args).is_present() {
+        if noargs::cmd("last").doc("TODO").take(&mut args).is_present() {
             todo!()
         } else {
             if let Some(help) = args.finish()? {

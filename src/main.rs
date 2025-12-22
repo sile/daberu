@@ -17,6 +17,22 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
+    let enable_subcommand = noargs::flag("ext")
+        .short('x')
+        .doc("TODO")
+        .take(&mut args)
+        .is_present();
+    if enable_subcommand {
+        if noargs::cmd("view").doc("TODO").take(&mut args).is_present() {
+            todo!()
+        } else {
+            if let Some(help) = args.finish()? {
+                print!("{help}");
+            }
+            return Ok(());
+        }
+    }
+
     let mut command = Command {
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")

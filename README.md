@@ -23,7 +23,6 @@ Options:
   -c, --continue                        Continue conversation from the existing log file instead of truncating it
   -m, --model <MODEL_NAME>              Model name [env: DABERU_MODEL] [default: claude-sonnet-4-20250514]
   -s, --system <STRING>                 System message
-      --gist <new | EXISTING_GIST_ID>   Save the output to GitHub Gist
   -r, --resource <PATH>                 File path to be used as a resource for the conversion
       --resource-size-limit <BYTE_SIZE> Maximum byte size per resource [env: DABERU_RESOURCE_SIZE_LIMIT] [default: 100000]
       --shell-executable <SHELL>        Shell executable to use for running shell commands [env: DABERU_SHELL_EXECUTABLE] [default: sh]

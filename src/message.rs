@@ -64,39 +64,6 @@ pub enum Role {
     Assistant,
 }
 
-impl Role {
-    pub fn gist_filename(self, i: usize, model: Option<&String>) -> String {
-        let name = match self {
-            Role::System => "system",
-            Role::User => "user",
-            Role::Assistant => "assistant",
-        };
-        if let Some(model) = model {
-            format!("{i:03}_{name}_{model}.md")
-        } else {
-            format!("{i:03}_{name}.md")
-        }
-    }
-
-    pub fn from_gist_filename(filename: &str, i: usize) -> orfail::Result<(Self, Option<String>)> {
-        let prefix = format!("{i:03}_");
-        (filename.starts_with(&prefix) && filename.ends_with(".md"))
-            .or_fail_with(|()| format!("unexpected gist filename: {filename}"))?;
-        let mut tokens = filename[4..filename.len() - 3].splitn(2, '_');
-        match tokens.next().expect("infallible") {
-            "system" => Ok((Self::System, None)),
-            "user" => Ok((Self::User, None)),
-            "assistant" => {
-                let model = tokens.next().map(|model| model.to_owned());
-                Ok((Self::Assistant, model))
-            }
-            _ => Err(orfail::Failure::new(format!(
-                "unexpected gist filename: {filename}"
-            ))),
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct MessageLog {
     pub messages: Vec<Message>,

@@ -69,16 +69,6 @@ fn main() -> noargs::Result<()> {
             .doc("System message")
             .take(&mut args)
             .present_and_then(|a| a.value().parse())?,
-        gist: noargs::opt("gist")
-            .ty("new | EXISTING_GIST_ID")
-            .doc(concat!(
-                "Save the output to GitHub Gist\n",
-                "\n",
-                "If `EXISTING_GIST_ID` is specified,\n",
-                "load the log from the Gist entry and update the entry"
-            ))
-            .take(&mut args)
-            .present_and_then(|a| a.value().parse())?,
         resources: std::iter::from_fn(|| {
             noargs::opt("resource")
                 .short('r')

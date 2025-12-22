@@ -44,6 +44,17 @@ fn main() -> noargs::Result<()> {
             ))
             .take(&mut args)
             .is_present(),
+        enable_agents_md: noargs::flag("enable-agents-md")
+            .short('a')
+            .env("DABERU_ENABLE_AGENTS_MD")
+            .doc(concat!(
+                "Automatically load AGENTS.md or CLAUDE.md as a resource\n",
+                "\n",
+                "If the file exists in the current directory, it will be ",
+                "prepended to the resources list"
+            ))
+            .take(&mut args)
+            .is_present(),
         model: noargs::opt("model")
             .short('m')
             .ty("MODEL_NAME")
@@ -94,6 +105,14 @@ fn main() -> noargs::Result<()> {
             .take(&mut args)
             .then(|a| a.value().parse())?,
     };
+
+    if command.enable_agents_md {
+        if let Ok(r) = FileResource::new("AGENTS.md") {
+            command.resources.insert(0, Resource::File(r));
+        } else if let Ok(r) = FileResource::new("CLAUDE.md") {
+            command.resources.insert(0, Resource::File(r));
+        }
+    }
 
     let shell = noargs::opt("shell-executable")
         .ty("SHELL")

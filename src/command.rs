@@ -9,6 +9,7 @@ pub struct Command {
     pub anthropic_api_key: Option<String>,
     pub log: Option<PathBuf>,
     pub continue_from_log: bool,
+    pub enable_agents_md: bool,
     pub model: String,
     pub system: Option<String>,
     pub gist: Option<String>,

@@ -1,0 +1,7 @@
+{
+  "model": "claude-sonnet-4-5",
+  "log_file": "{{ HOME }}/.daberu.jsonl",
+  "resource_size_limit": 100000,
+  "shell_executable": "sh",
+  "resources_if_exists": ["AGENT.md", "CLAUDE.md"],
+}

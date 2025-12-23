@@ -35,6 +35,12 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_list_skills::run(&mut args)?;
+        } else if noargs::cmd("create-skill")
+            .doc("TODO")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_create_skill::run(&mut args)?;
         } else if noargs::cmd("get-skill")
             .doc("TODO")
             .take(&mut args)

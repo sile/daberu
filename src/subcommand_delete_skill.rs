@@ -9,7 +9,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .take(args)
         .then(|a| a.value().parse())?;
 
-    let skill_id: String = noargs::arg("skill-id")
+    let skill_id: String = noargs::arg("SKILL_ID")
         .example("foo")
         .doc("ID of the skill to delete")
         .take(args)

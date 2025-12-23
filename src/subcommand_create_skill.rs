@@ -10,6 +10,8 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .take(args)
         .then(|a| a.value().parse())?;
 
+    // TODO: Add --skill-id option (to update an existing skill)
+
     let display_title: String = noargs::arg("DISPLAY_TITLE")
         .example("My Skill")
         .doc("Display title for the skill")

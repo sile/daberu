@@ -4,3 +4,4 @@ pub mod curl;
 pub mod message;
 pub mod resource;
 pub mod subcommand_last;
+pub mod subcommand_list_skills;

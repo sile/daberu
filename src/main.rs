@@ -29,7 +29,14 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_last::run(&mut args)?;
+        } else if noargs::cmd("list-skills")
+            .doc("TODO")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_list_skills::run(&mut args)?;
         }
+
         if let Some(help) = args.finish()? {
             print!("{help}");
         }

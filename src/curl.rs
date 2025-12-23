@@ -22,6 +22,30 @@ impl CurlRequest {
         self
     }
 
+    pub fn get(self) -> orfail::Result<CurlResponse> {
+        let mut cmd = std::process::Command::new("curl");
+        cmd.arg(&self.url);
+
+        // Add headers
+        for (name, value) in &self.headers {
+            cmd.arg("-H").arg(format!("{name}: {value}"));
+        }
+
+        // Add flags
+        cmd.arg("--silent");
+        cmd.arg("--show-error");
+        cmd.arg("--no-buffer");
+        cmd.arg("--include");
+
+        let mut child = cmd.stdout(std::process::Stdio::piped()).spawn().or_fail()?;
+
+        let stdout = child.stdout.take().or_fail()?;
+
+        // Return the response immediately without waiting for process completion
+        let output = CurlResponse::from_reader_with_child(stdout, child)?;
+        Ok(output)
+    }
+
     pub fn post(self, data: impl Display) -> orfail::Result<CurlResponse> {
         let mut cmd = std::process::Command::new("curl");
         cmd.arg(&self.url);

@@ -22,6 +22,29 @@ impl CurlRequest {
         self
     }
 
+    pub fn delete(self) -> orfail::Result<CurlResponse> {
+        let mut cmd = std::process::Command::new("curl");
+        cmd.arg(&self.url);
+        cmd.arg("-X").arg("DELETE");
+
+        // Add headers
+        for (name, value) in &self.headers {
+            cmd.arg("-H").arg(format!("{name}: {value}"));
+        }
+
+        // Add flags
+        cmd.arg("--silent");
+        cmd.arg("--show-error");
+        cmd.arg("--no-buffer");
+        cmd.arg("--include");
+
+        let mut child = cmd.stdout(std::process::Stdio::piped()).spawn().or_fail()?;
+        let stdout = child.stdout.take().or_fail()?;
+
+        let output = CurlResponse::from_reader_with_child(stdout, child)?;
+        Ok(output)
+    }
+
     pub fn get(self) -> orfail::Result<CurlResponse> {
         let mut cmd = std::process::Command::new("curl");
         cmd.arg(&self.url);

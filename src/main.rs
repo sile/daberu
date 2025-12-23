@@ -35,6 +35,12 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_list_skills::run(&mut args)?;
+        } else if noargs::cmd("delete-skill")
+            .doc("TODO")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_delete_skill::run(&mut args)?;
         }
 
         if let Some(help) = args.finish()? {

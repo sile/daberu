@@ -53,7 +53,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
                 form_fields.push((
                     "files[]".to_string(),
-                    format!("@{}", path.to_string_lossy()),
+                    format!("@{};filename={}", path.to_string_lossy(), relative_path),
                 ));
             } else if path.is_dir() {
                 add_files(&path, base_path, form_fields)?;

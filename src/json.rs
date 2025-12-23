@@ -10,7 +10,7 @@ pub fn pretty_print_reader<R: Read>(mut json_reader: R) -> orfail::Result<()> {
 }
 
 pub fn pretty_print_text(json_text: &str) -> orfail::Result<()> {
-    let json = nojson::RawJson::parse(&json_text).or_fail()?;
+    let json = nojson::RawJson::parse(json_text).or_fail()?;
     let pretty = nojson::json(|f| {
         f.set_indent_size(2);
         f.set_spacing(true);

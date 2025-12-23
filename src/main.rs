@@ -30,7 +30,7 @@ fn main() -> noargs::Result<()> {
         {
             daberu::subcommand_last::run(&mut args)?;
         } else if noargs::cmd("list-skills")
-            .doc("TODO")
+            .doc("List available skills")
             .take(&mut args)
             .is_present()
         {

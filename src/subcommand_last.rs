@@ -7,7 +7,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .short('l')
         .ty("PATH")
         .env("DABERU_LOG_PATH")
-        .doc(concat!("TODO"))
+        .doc("Path to log file containing the conversation history")
         .take(args)
         .then(|a| a.value().parse())?;
     let log = MessageLog::load(log)?;

@@ -19,11 +19,15 @@ fn main() -> noargs::Result<()> {
 
     let enable_subcommand = noargs::flag("ext")
         .short('x')
-        .doc("TODO")
+        .doc("Enable extended subcommands")
         .take(&mut args)
         .is_present();
     if enable_subcommand {
-        if noargs::cmd("last").doc("TODO").take(&mut args).is_present() {
+        if noargs::cmd("last")
+            .doc("Display the last message from the conversation log")
+            .take(&mut args)
+            .is_present()
+        {
             daberu::subcommand_last::run(&mut args)?;
         }
         if let Some(help) = args.finish()? {

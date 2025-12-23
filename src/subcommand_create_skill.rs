@@ -36,7 +36,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .header("X-Api-Key", &api_key)
         .post_multipart(vec![
             ("display_title".to_string(), display_title),
-            ("files".to_string(), format!("@{}", skill_file)),
+            ("files[]".to_string(), format!("@{}", skill_file)),
         ])
         .or_fail()?;
 

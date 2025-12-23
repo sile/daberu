@@ -20,17 +20,8 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .get()
         .or_fail()?;
 
-    let mut reader = response.check_success().or_fail()?;
-    let mut response = String::new();
-    reader.read_to_string(&mut response).or_fail()?;
-
-    let json = nojson::RawJson::parse(&response).or_fail()?;
-    let pretty = nojson::json(|f| {
-        f.set_indent_size(2);
-        f.set_spacing(true);
-        f.value(json.value())
-    });
-    println!("{pretty}");
+    let response = response.check_success().or_fail()?;
+    crate::json::pretty_print_reader(response).or_fail()?;
 
     Ok(())
 }

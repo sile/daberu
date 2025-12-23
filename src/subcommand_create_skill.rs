@@ -10,7 +10,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .then(|a| a.value().parse())?;
 
     // TODO: opt
-    let display_title: String = noargs::arg("display-title")
+    let display_title: String = noargs::arg("DISPLAY_TITLE")
         .example("My Skill")
         .doc("Display title for the skill")
         .take(args)

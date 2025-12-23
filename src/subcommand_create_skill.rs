@@ -53,7 +53,11 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
                 form_fields.push((
                     "files[]".to_string(),
-                    format!("@{};filename={}", path.to_string_lossy(), relative_path),
+                    dbg!(format!(
+                        "@{};filename={}",
+                        path.to_string_lossy(),
+                        relative_path
+                    )),
                 ));
             } else if path.is_dir() {
                 add_files(&path, base_path, form_fields)?;
@@ -62,7 +66,11 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         Ok(())
     }
 
-    add_files(path, path, &mut form_fields)?;
+    add_files(
+        &path.canonicalize().or_fail()?,
+        &path.canonicalize().or_fail()?.parent().or_fail()?,
+        &mut form_fields,
+    )?;
 
     // Verify SKILL.md exists
     let skill_md_path = path.join("SKILL.md");

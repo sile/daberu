@@ -24,13 +24,12 @@ fn main() -> noargs::Result<()> {
         .is_present();
     if enable_subcommand {
         if noargs::cmd("last").doc("TODO").take(&mut args).is_present() {
-            todo!()
-        } else {
-            if let Some(help) = args.finish()? {
-                print!("{help}");
-            }
-            return Ok(());
+            daberu::subcommand_last::run(&mut args)?;
         }
+        if let Some(help) = args.finish()? {
+            print!("{help}");
+        }
+        return Ok(());
     }
 
     let mut command = Command {

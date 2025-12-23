@@ -3,3 +3,4 @@ pub mod command;
 pub mod curl;
 pub mod message;
 pub mod resource;
+pub mod subcommand_last;

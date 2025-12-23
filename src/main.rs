@@ -17,6 +17,25 @@ fn main() -> noargs::Result<()> {
     }
     noargs::HELP_FLAG.take_help(&mut args);
 
+    let enable_subcommand = noargs::flag("ext")
+        .short('x')
+        .doc("Enable extended subcommands")
+        .take(&mut args)
+        .is_present();
+    if enable_subcommand {
+        if noargs::cmd("last")
+            .doc("Display the last message from the conversation log")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_last::run(&mut args)?;
+        }
+        if let Some(help) = args.finish()? {
+            print!("{help}");
+        }
+        return Ok(());
+    }
+
     let mut command = Command {
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")

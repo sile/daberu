@@ -17,11 +17,12 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .take(args)
         .then(|a| a.value().parse())
         .ok();
-    let display_title: String = noargs::arg("DISPLAY_TITLE")
-        .example("YOUR_SKILL_TITLE")
-        .doc("Display title for the skill")
+    let display_title: Option<String> = noargs::opt("display-title")
+        .short('t')
+        .ty("STRING")
+        .doc("Display title for the skill (defaults to skill directory name if not provided)")
         .take(args)
-        .then(|a| a.value().parse())?;
+        .present_and_then(|a| a.value().parse())?;
     let skill_dir: PathBuf = noargs::arg("SKILL_DIR")
         .example("/path/to/skill/")
         .doc("Path to skill directory to upload")
@@ -43,9 +44,19 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         )
     })?;
 
-    // Collect all files from the directory
+    let display_title = if let Some(title) = display_title {
+        title
+    } else {
+        skill_dir
+            .file_name()
+            .or_fail()?
+            .to_string_lossy()
+            .to_string()
+    };
     let mut form_fields = vec![("display_title".to_string(), display_title)];
     let skill_dir = skill_dir.canonicalize().or_fail()?;
+
+    // Collect all files from the directory
     add_files(&skill_dir, skill_dir.parent().or_fail()?, &mut form_fields)?;
 
     // Determine endpoint based on whether we're updating or creating

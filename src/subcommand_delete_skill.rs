@@ -10,7 +10,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .then(|a| a.value().parse())?;
 
     let skill_id: String = noargs::arg("SKILL_ID")
-        .example("foo")
+        .example("skill_foo")
         .doc("ID of the skill to delete")
         .take(args)
         .then(|a| a.value().parse())?;
@@ -27,20 +27,38 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
     .header("anthropic-beta", "skills-2025-10-02")
     .header("X-Api-Key", &api_key)
     .get()
+    .or_fail()?
+    .into_json()
     .or_fail()?;
 
-    let mut versions_response = versions_response.check_success().or_fail()?;
-
-    // Parse versions from response (simplified - in production you'd parse JSON properly)
-    let mut versions_body = String::new();
-    use std::io::Read;
-    versions_response
-        .read_to_string(&mut versions_body)
-        .or_fail()?;
-
     // Delete each version
-    // Note: This is a simplified approach. In production, you'd parse the JSON response
-    // to extract version IDs and iterate through them
+    for version_entry in versions_response
+        .value()
+        .to_member("data")
+        .or_fail()?
+        .required()
+        .or_fail()?
+        .to_array()
+        .or_fail()?
+    {
+        let version_id = version_entry
+            .to_member("id")
+            .or_fail()?
+            .required()
+            .or_fail()?
+            .to_unquoted_string_str()
+            .or_fail()?;
+        crate::curl::CurlRequest::new(format!(
+            "https://api.anthropic.com/v1/skills/{skill_id}/versions/{version_id}",
+        ))
+        .header("anthropic-version", "2023-06-01")
+        .header("anthropic-beta", "skills-2025-10-02")
+        .header("X-Api-Key", &api_key)
+        .delete()
+        .or_fail()?
+        .check_success()
+        .or_fail()?;
+    }
 
     // For now, attempt to delete the skill directly
     // The API will return an error if versions exist, which is the expected behavior

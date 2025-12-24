@@ -179,6 +179,16 @@ impl CurlResponse {
         })
     }
 
+    pub fn into_json(self) -> orfail::Result<nojson::RawJsonOwned> {
+        let mut reader = self.check_success().or_fail()?;
+
+        let mut text = String::new();
+        reader.read_to_string(&mut text).or_fail()?;
+
+        let json = nojson::RawJsonOwned::parse(text).or_fail()?;
+        Ok(json)
+    }
+
     pub fn check_success(mut self) -> orfail::Result<Box<dyn BufRead>> {
         if self.status_code != 200 {
             // Read response body for error details

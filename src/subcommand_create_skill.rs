@@ -70,7 +70,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
     add_files(
         &path.canonicalize().or_fail()?,
-        &path.canonicalize().or_fail()?.parent().or_fail()?,
+        path.canonicalize().or_fail()?.parent().or_fail()?,
         &mut form_fields,
     )?;
 

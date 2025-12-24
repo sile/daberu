@@ -99,11 +99,7 @@ fn add_files(
 
             form_fields.push((
                 "files[]".to_string(),
-                dbg!(format!(
-                    "@{};filename={}",
-                    path.to_string_lossy(),
-                    relative_path
-                )),
+                format!("@{};filename={}", path.to_string_lossy(), relative_path),
             ));
         } else if path.is_dir() {
             add_files(&path, base_path, form_fields)?;

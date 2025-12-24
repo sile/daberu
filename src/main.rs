@@ -36,19 +36,19 @@ fn main() -> noargs::Result<()> {
         {
             daberu::subcommand_list_skills::run(&mut args)?;
         } else if noargs::cmd("create-skill")
-            .doc("TODO")
+            .doc("Create a new skill from a directory")
             .take(&mut args)
             .is_present()
         {
             daberu::subcommand_create_skill::run(&mut args)?;
         } else if noargs::cmd("get-skill")
-            .doc("TODO")
+            .doc("Retrieve details about a specific skill")
             .take(&mut args)
             .is_present()
         {
             daberu::subcommand_get_skill::run(&mut args)?;
         } else if noargs::cmd("delete-skill")
-            .doc("TODO")
+            .doc("Delete a skill and all its versions")
             .take(&mut args)
             .is_present()
         {

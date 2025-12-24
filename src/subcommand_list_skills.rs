@@ -10,7 +10,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .then(|a| a.value().parse())?;
     let custom_source_only: bool = noargs::flag("custom-source-only")
         .short('c')
-        .doc("TODO")
+        .doc("List only custom skills (exclude Anthropic-managed skills)")
         .take(args)
         .is_present();
     if args.metadata().help_mode {

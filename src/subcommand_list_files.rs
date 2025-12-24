@@ -17,9 +17,9 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .header("anthropic-beta", "files-api-2025-04-14")
         .header("X-Api-Key", &api_key)
         .get()
+        .or_fail()?
+        .check_success()
         .or_fail()?;
-
-    let response = response.check_success().or_fail()?;
     crate::json::pretty_print_reader(response).or_fail()?;
 
     Ok(())

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 
 use orfail::OrFail;
 
@@ -14,7 +15,7 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .doc("ID of the file to download")
         .take(args)
         .then(|a| a.value().parse())?;
-    let output: Option<String> = noargs::opt("output")
+    let output_path: Option<PathBuf> = noargs::opt("output-file")
         .short('o')
         .ty("PATH")
         .doc("Output file path (if not specified, writes to stdout)")
@@ -35,10 +36,10 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
     .check_success()
     .or_fail()?;
 
-    if let Some(output_path) = output {
+    if let Some(output_path) = output_path {
         let mut file = std::fs::File::create(&output_path).or_fail()?;
         std::io::copy(&mut response, &mut file).or_fail()?;
-        eprintln!("Downloaded to: {}", output_path);
+        eprintln!("Downloaded to: {}", output_path.display());
     } else {
         std::io::copy(&mut response, &mut std::io::stdout()).or_fail()?;
     }

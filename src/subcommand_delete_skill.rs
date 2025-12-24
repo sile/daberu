@@ -61,16 +61,15 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
     }
 
     // For now, attempt to delete the skill directly
-    // The API will return an error if versions exist, which is the expected behavior
     let response =
         crate::curl::CurlRequest::new(format!("https://api.anthropic.com/v1/skills/{skill_id}"))
             .header("anthropic-version", "2023-06-01")
             .header("anthropic-beta", "skills-2025-10-02")
             .header("X-Api-Key", &api_key)
             .delete()
+            .or_fail()?
+            .check_success()
             .or_fail()?;
-
-    let response = response.check_success().or_fail()?;
     crate::json::pretty_print_reader(response).or_fail()?;
 
     Ok(())

@@ -8,13 +8,11 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .example("FOOBARBAZ")
         .take(args)
         .then(|a| a.value().parse())?;
-
     let skill_id: String = noargs::arg("SKILL_ID")
         .example("skill_foo")
         .doc("ID of the skill to delete")
         .take(args)
         .then(|a| a.value().parse())?;
-
     if args.metadata().help_mode {
         return Ok(());
     }

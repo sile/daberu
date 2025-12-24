@@ -5,16 +5,14 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .ty("STRING")
         .env("ANTHROPIC_API_KEY")
         .doc("Anthropic API key")
-        .example("FOOBARBAZ")
+        .example("YOUR_API_KEY")
         .take(args)
         .then(|a| a.value().parse())?;
-
     let skill_id: String = noargs::arg("SKILL_ID")
-        .example("foo")
+        .example("skill_foo")
         .doc("ID of the skill to retrieve")
         .take(args)
         .then(|a| a.value().parse())?;
-
     if args.metadata().help_mode {
         return Ok(());
     }
@@ -25,9 +23,9 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
             .header("anthropic-beta", "skills-2025-10-02")
             .header("X-Api-Key", &api_key)
             .get()
+            .or_fail()?
+            .check_success()
             .or_fail()?;
-
-    let response = response.check_success().or_fail()?;
     crate::json::pretty_print_reader(response).or_fail()?;
 
     Ok(())

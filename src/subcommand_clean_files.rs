@@ -28,19 +28,10 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
         // Iterate over files
         for file in files_value.to_array().or_fail()? {
-            let file_id = file
-                .to_member("id")?
-                .required()
-                .or_fail()?
-                .to_unquoted_string_str()
-                .or_fail()?;
-
-            let filename = file
-                .to_member("filename")?
-                .required()
-                .or_fail()?
-                .to_unquoted_string_str()
-                .or_fail()?;
+            let file_id =
+                String::try_from(file.to_member("id")?.required().or_fail()?).or_fail()?;
+            let filename =
+                String::try_from(file.to_member("filename")?.required().or_fail()?).or_fail()?;
 
             println!("Deleting file: {filename} ({file_id})");
 

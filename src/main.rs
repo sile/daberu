@@ -170,7 +170,7 @@ fn main() -> noargs::Result<()> {
             .then(|a| a.value().parse())?,
         skill_ids: std::iter::from_fn(|| {
             noargs::opt("skill")
-                .short('S')
+                .short('k')
                 .ty("SKILL_ID")
                 .doc(concat!(
                     "Skill ID to use (e.g., 'pptx', 'skill_01ABC...')\n",

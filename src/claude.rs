@@ -114,8 +114,9 @@ impl Claude {
             .content
             .into_iter()
             .filter_map(|block| match block {
-                ContentBlock::Text(text) => Some(text),
-                ContentBlock::ServerToolUse { .. } => None,
+                ContentBlock::Text(text) => Some(text), // TODO: Add println
+                ContentBlock::ServerToolUse { .. } => None, // TODO: show summary
+                ContentBlock::ToolResult { .. } => None, // TODO: show summary
             })
             .collect::<Vec<_>>()
             .join("");
@@ -156,11 +157,17 @@ impl Claude {
                 Data::ContentBlockStart { content_block } => match content_block {
                     ContentBlock::Text(text) => {
                         content.push_str(&text);
-                        print!("{}", text);
+                        print!("{text}");
                         std::io::stdout().flush().or_fail()?;
                     }
                     ContentBlock::ServerToolUse { id, name, input } => {
-                        eprintln!("Server tool use: id={}, name={}, input={}", id, name, input);
+                        eprintln!("Server tool use: id={id}, name={name}, input={input}");
+                    }
+                    ContentBlock::ToolResult {
+                        tool_use_id,
+                        content,
+                    } => {
+                        eprintln!("Tool result: tool_use_id={tool_use_id}, content={content}",);
                     }
                 },
                 Data::ContentBlockDelta { delta } => {
@@ -287,6 +294,10 @@ enum ContentBlock {
         name: String,
         input: nojson::RawJsonOwned,
     },
+    ToolResult {
+        tool_use_id: String,
+        content: nojson::RawJsonOwned,
+    },
 }
 
 impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ContentBlock {
@@ -294,7 +305,9 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ContentBlock {
 
     fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
         let ty = value.to_member("type")?.required()?;
-        match ty.to_unquoted_string_str()?.as_ref() {
+        let type_str = ty.to_unquoted_string_str()?;
+
+        match type_str.as_ref() {
             "text" => {
                 let text = value.to_member("text")?.required()?;
                 Ok(Self::Text(text.try_into()?))
@@ -307,6 +320,15 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ContentBlock {
                     id: id.try_into()?,
                     name: name.try_into()?,
                     input: input.extract().into_owned(),
+                })
+            }
+            // Handle all tool result types dynamically (ends with _tool_result)
+            ty if ty.ends_with("_tool_result") => {
+                let tool_use_id = value.to_member("tool_use_id")?.required()?;
+                let content = value.to_member("content")?.required()?;
+                Ok(Self::ToolResult {
+                    tool_use_id: tool_use_id.try_into()?,
+                    content: content.extract().into_owned(),
                 })
             }
             ty => Err(value.invalid(format!("unknown content block type: {ty}"))),

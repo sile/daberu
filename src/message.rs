@@ -9,8 +9,8 @@ pub struct Message {
     pub role: Role,
     pub content: String,
     pub model: Option<String>,
+    pub container_id: Option<String>,
     // TODO: files_ids: Vec<String>
-    // TODO: container_id: Option<String>
 }
 
 impl nojson::DisplayJson for Message {
@@ -28,6 +28,9 @@ impl nojson::DisplayJson for Message {
             if let Some(model) = &self.model {
                 f.member("model", model)?;
             }
+            if let Some(container_id) = &self.container_id {
+                f.member("container_id", container_id)?;
+            }
             Ok(())
         })
     }
@@ -40,6 +43,7 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Message {
         let role = value.to_member("role")?.required()?;
         let content = value.to_member("content")?.required()?;
         let model = value.to_member("model")?;
+        let container_id = value.to_member("container_id")?;
 
         Ok(Self {
             role: match role.to_unquoted_string_str()?.as_ref() {
@@ -55,6 +59,7 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Message {
             },
             content: content.try_into()?,
             model: model.try_into()?,
+            container_id: container_id.try_into()?,
         })
     }
 }
@@ -97,6 +102,13 @@ impl MessageLog {
         Ok(())
     }
 
+    pub fn latest_container_id(&self) -> Option<&str> {
+        self.messages
+            .iter()
+            .rev()
+            .find_map(|m| m.container_id.as_ref().map(|c| c.as_str()))
+    }
+
     pub fn read_input(&mut self, mut input: String, resources: &[Resource]) -> orfail::Result<()> {
         if !resources.is_empty() {
             input.push_str(
@@ -116,6 +128,7 @@ Please consider the following JSON array as the resources:
             role: Role::User,
             content: input,
             model: None,
+            container_id: None,
         });
         Ok(())
     }
@@ -126,6 +139,7 @@ Please consider the following JSON array as the resources:
                 role: Role::System,
                 content: system.to_owned(),
                 model: None,
+                container_id: None,
             });
         }
     }

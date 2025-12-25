@@ -47,7 +47,9 @@ impl Claude {
                 f.member(
                     "container",
                     nojson::object(|f| {
-                        // TODO: id handling to continue conversation
+                        if let Some(id) = log.latest_container_id() {
+                            f.member("id", id)?;
+                        }
 
                         f.member(
                             "skills",
@@ -118,10 +120,12 @@ impl Claude {
                     content.push('\n');
                 }
                 ContentBlock::ServerToolUse { id, name, .. } => {
-                    content.push_str(&format!("[Tool: {name} ({id})]\n"));
+                    content.push_str(&format!("[Tool: {name} ({id})]\\n"));
                 }
                 ContentBlock::ToolResult { tool_use_id, .. } => {
-                    content.push_str(&format!("[Result from tool {tool_use_id}]\n\n------\n\n"));
+                    content.push_str(&format!(
+                        "[Result from tool {tool_use_id}]\\n\\n------\\n\\n"
+                    ));
                 }
             }
         }
@@ -131,11 +135,14 @@ impl Claude {
             role: Role::Assistant,
             content,
             model: Some(self.model.clone()),
+            container_id: response.container.map(|c| c.id),
         })
     }
 
     fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
+        let mut container_id: Option<String> = None;
+
         for line in reader.lines() {
             let line = line.or_fail()?;
             dbg!(&line);
@@ -153,7 +160,24 @@ impl Claude {
                 .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {
-                Data::MessageStart { stop_reason } | Data::MessageDelta { stop_reason } => {
+                Data::MessageStart {
+                    stop_reason,
+                    container,
+                } => {
+                    if let Some(c) = container {
+                        container_id = Some(c.id);
+                    }
+                    if let Some(reason) = stop_reason {
+                        (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
+                    }
+                }
+                Data::MessageDelta {
+                    stop_reason,
+                    container,
+                } => {
+                    if let Some(c) = container {
+                        container_id = Some(c.id);
+                    }
                     if let Some(reason) = stop_reason {
                         (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
                     }
@@ -195,6 +219,7 @@ impl Claude {
             role: Role::Assistant,
             content,
             model: Some(self.model.clone()),
+            container_id,
         })
     }
 }
@@ -202,6 +227,21 @@ impl Claude {
 #[derive(Debug)]
 struct ApiResponse {
     content: Vec<ContentBlock>,
+    container: Option<Container>,
+}
+
+#[derive(Debug)]
+struct Container {
+    id: String,
+}
+
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Container {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
+        let id = value.to_member("id")?.required()?;
+        Ok(Self { id: id.try_into()? })
+    }
 }
 
 impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ApiResponse {
@@ -209,22 +249,36 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ApiResponse {
 
     fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
         let content = value.to_member("content")?.required()?;
+        let container = value.to_member("container")?;
         Ok(Self {
             content: content.try_into()?,
+            container: container.try_into()?,
         })
     }
 }
 
 #[derive(Debug)]
 enum Data {
-    MessageStart { stop_reason: Option<String> },
-    MessageDelta { stop_reason: Option<String> },
+    MessageStart {
+        stop_reason: Option<String>,
+        container: Option<Container>,
+    },
+    MessageDelta {
+        stop_reason: Option<String>,
+        container: Option<Container>,
+    },
     MessageStop,
-    ContentBlockStart { content_block: ContentBlock },
-    ContentBlockDelta { delta: Delta },
+    ContentBlockStart {
+        content_block: ContentBlock,
+    },
+    ContentBlockDelta {
+        delta: Delta,
+    },
     ContentBlockStop,
     Ping,
-    Error { error: String },
+    Error {
+        error: String,
+    },
 }
 
 impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
@@ -233,12 +287,20 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
     fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
         let ty = value.to_member("type")?.required()?;
         match ty.to_unquoted_string_str()?.as_ref() {
-            "message_start" => Ok(Self::MessageStart {
-                stop_reason: value.to_member("stop_reason")?.try_into()?,
-            }),
-            "message_delta" => Ok(Self::MessageDelta {
-                stop_reason: value.to_member("stop_reason")?.try_into()?,
-            }),
+            "message_start" => {
+                let container = value.to_member("container")?;
+                Ok(Self::MessageStart {
+                    stop_reason: value.to_member("stop_reason")?.try_into()?,
+                    container: container.try_into()?,
+                })
+            }
+            "message_delta" => {
+                let container = value.to_member("container")?;
+                Ok(Self::MessageDelta {
+                    stop_reason: value.to_member("stop_reason")?.try_into()?,
+                    container: container.try_into()?,
+                })
+            }
             "message_stop" => Ok(Self::MessageStop),
             "content_block_start" => {
                 let content_block = value.to_member("content_block")?.required()?;

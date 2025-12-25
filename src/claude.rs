@@ -15,6 +15,7 @@ const MAX_TOKENS: u32 = 10_000;
 pub struct Claude {
     api_key: String,
     model: String,
+    skill_ids: Vec<SkillId>,
 }
 
 impl Claude {
@@ -22,6 +23,7 @@ impl Claude {
         Ok(Self {
             api_key: command.anthropic_api_key.clone().or_fail()?,
             model,
+            skill_ids: command.skill_ids.clone(),
         })
     }
 
@@ -36,15 +38,57 @@ impl Claude {
                 if let Some(system_message) = &system_message {
                     f.member("system", system_message)?;
                 }
+                if self.skill_ids.is_empty() {
+                    return Ok(());
+                }
+
+                // Add skill related fields (container, tools) if skill_ids is not empty
+                f.member(
+                    "container",
+                    nojson::object(|f| {
+                        // TODO: id handling to ccontinue conversation
+
+                        f.member(
+                            "skills",
+                            nojson::array(|f| {
+                                for skill_id in &self.skill_ids {
+                                    f.element(nojson::object(|f| {
+                                        f.member("type", skill_id.source())?;
+                                        f.member("skill_id", &skill_id.0)?;
+                                        f.member("version", "latest")
+                                    }))?;
+                                }
+                                Ok(())
+                            }),
+                        )?;
+                        Ok(())
+                    }),
+                )?;
+                f.member(
+                    "tools",
+                    [nojson::object(|f| {
+                        f.member("type", "code_execution_20250825")?;
+                        f.member("name", "code_execution")
+                    })],
+                )?;
                 Ok(())
             })
         });
 
-        let response = crate::curl::CurlRequest::new(API_END_POINT)
+        let mut request_builder = crate::curl::CurlRequest::new(API_END_POINT)
             .header("Content-Type", "application/json")
             .header("x-api-key", &self.api_key)
-            .header("anthropic-version", ANTHROPIC_VERSION)
-            .post(request)?;
+            .header("anthropic-version", ANTHROPIC_VERSION);
+
+        // Add skill related headers if skill_ids is not empty
+        if !self.skill_ids.is_empty() {
+            request_builder = request_builder.header(
+                "anthropic-beta",
+                "code-execution-2025-08-25,skills-2025-10-02",
+            );
+        }
+
+        let response = request_builder.post(request)?;
 
         let reader = response.check_success()?;
         let reply = self.handle_stream_response(reader).or_fail()?;

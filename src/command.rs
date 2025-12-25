@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{claude::Claude, message::MessageLog, resource::Resource};
+use crate::{
+    claude::{Claude, SkillId},
+    message::MessageLog,
+    resource::Resource,
+};
 
 #[derive(Debug)]
 pub struct Command {
@@ -14,7 +18,7 @@ pub struct Command {
     pub system: Option<String>,
     pub resources: Vec<Resource>,
     pub resource_size_limit: usize,
-    pub skill_ids: Vec<String>, // TODO: use SkillId
+    pub skill_ids: Vec<SkillId>,
 }
 
 impl Command {
@@ -44,19 +48,5 @@ impl Command {
         }
 
         Ok(())
-    }
-
-    /// Determines if a skill is custom (has `skill_` prefix) or anthropic (predefined)
-    pub fn get_skill_source(skill_id: &str) -> &'static str {
-        if skill_id.starts_with("skill_") {
-            "custom"
-        } else {
-            "anthropic"
-        }
-    }
-
-    /// Check if skills feature should be enabled (non-empty skill_ids)
-    pub fn should_enable_skills(&self) -> bool {
-        !self.skill_ids.is_empty()
     }
 }

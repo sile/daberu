@@ -173,3 +173,24 @@ struct ContentBlock {
 struct Delta {
     text: String,
 }
+
+#[derive(Debug, Clone)]
+pub struct SkillId(String);
+
+impl SkillId {
+    pub fn source(&self) -> &'static str {
+        if self.0.starts_with("skill_") {
+            "custom"
+        } else {
+            "anthropic"
+        }
+    }
+}
+
+impl std::str::FromStr for SkillId {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_owned()))
+    }
+}

@@ -110,16 +110,22 @@ impl Claude {
             .parse::<nojson::Json<ApiResponse>>()
             .or_fail_with(|e| format!("failed to parse response: {e}"))?;
 
-        let content = response
-            .content
-            .into_iter()
-            .filter_map(|block| match block {
-                ContentBlock::Text(text) => Some(text), // TODO: Add println
-                ContentBlock::ServerToolUse { .. } => None, // TODO: show summary
-                ContentBlock::ToolResult { .. } => None, // TODO: show summary
-            })
-            .collect::<Vec<_>>()
-            .join("");
+        let mut content = String::new();
+        for block in response.content {
+            match block {
+                ContentBlock::Text(text) => {
+                    content.push_str(&text);
+                    content.push('\n');
+                }
+                ContentBlock::ServerToolUse { id, name, .. } => {
+                    content.push_str(&format!("[Tool: {name} ({id})]\n"));
+                }
+                ContentBlock::ToolResult { tool_use_id, .. } => {
+                    content.push_str(&format!("[Result from tool {tool_use_id}]\n"));
+                }
+            }
+        }
+        print!("{content}");
 
         Ok(Message {
             role: Role::Assistant,

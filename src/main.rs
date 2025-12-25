@@ -59,12 +59,6 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_list_files::run(&mut args)?;
-        } else if noargs::cmd("delete-file")
-            .doc("Delete a file")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_delete_file::run(&mut args)?;
         } else if noargs::cmd("get-file-metadata")
             .doc("Get file metadata")
             .take(&mut args)
@@ -77,6 +71,18 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_get_file::run(&mut args)?;
+        } else if noargs::cmd("delete-file")
+            .doc("Delete a file")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_delete_file::run(&mut args)?;
+        } else if noargs::cmd("clean-files")
+            .doc("Delete all files")
+            .take(&mut args)
+            .is_present()
+        {
+            daberu::subcommand_clean_files::run(&mut args)?;
         }
 
         if let Some(help) = args.finish()? {

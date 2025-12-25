@@ -14,18 +14,14 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
     loop {
         // Get list of files
-        let response = crate::curl::CurlRequest::new("https://api.anthropic.com/v1/files")
+        let raw = crate::curl::CurlRequest::new("https://api.anthropic.com/v1/files")
             .header("anthropic-version", "2023-06-01")
             .header("anthropic-beta", "files-api-2025-04-14")
             .header("x-api-key", &api_key)
             .get()
             .or_fail()?
-            .check_success()
+            .into_json()
             .or_fail()?;
-
-        // Read response into string
-        let response_text = std::io::read_to_string(response).or_fail()?;
-        let raw = nojson::RawJson::parse(&response_text).or_fail()?;
 
         // Extract files array
         let files_value = raw.value().to_member("data")?.required().or_fail()?;

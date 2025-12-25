@@ -121,7 +121,7 @@ impl Claude {
                     content.push_str(&format!("[Tool: {name} ({id})]\n"));
                 }
                 ContentBlock::ToolResult { tool_use_id, .. } => {
-                    content.push_str(&format!("[Result from tool {tool_use_id}]\n"));
+                    content.push_str(&format!("[Result from tool {tool_use_id}]\n\n------\n\n"));
                 }
             }
         }

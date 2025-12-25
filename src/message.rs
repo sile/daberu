@@ -9,6 +9,8 @@ pub struct Message {
     pub role: Role,
     pub content: String,
     pub model: Option<String>,
+    // TODO: files_ids: Vec<String>
+    // TODO: container_id: Option<String>
 }
 
 impl nojson::DisplayJson for Message {

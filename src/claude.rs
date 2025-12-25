@@ -29,10 +29,11 @@ impl Claude {
 
     pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
         let (log, system_message) = log.strip_system_message();
+        let stream = self.skill_ids.is_empty(); // I do not know why, but this is needed
         let request = nojson::json(|f| {
             f.object(|f| {
                 f.member("model", &self.model)?;
-                f.member("stream", true)?;
+                f.member("stream", stream)?;
                 f.member("max_tokens", MAX_TOKENS)?;
                 f.member("messages", &log.messages)?;
                 if let Some(system_message) = &system_message {
@@ -46,7 +47,7 @@ impl Claude {
                 f.member(
                     "container",
                     nojson::object(|f| {
-                        // TODO: id handling to ccontinue conversation
+                        // TODO: id handling to continue conversation
 
                         f.member(
                             "skills",
@@ -100,6 +101,7 @@ impl Claude {
         let mut content = String::new();
         for line in reader.lines() {
             let line = line.or_fail()?;
+            dbg!(&line);
             if line.is_empty() {
                 continue;
             }
@@ -110,7 +112,7 @@ impl Claude {
                 break;
             }
 
-            let nojson::Json(data) = line["data: ".len()..]
+            let nojson::Json(data) = line[("data: ").len()..]
                 .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {
@@ -121,11 +123,16 @@ impl Claude {
                 }
                 Data::MessageStop => {}
                 Data::Ping => {}
-                Data::ContentBlockStart { content_block } => {
-                    content.push_str(&content_block.text);
-                    print!("{}", content_block.text);
-                    std::io::stdout().flush().or_fail()?;
-                }
+                Data::ContentBlockStart { content_block } => match content_block {
+                    ContentBlock::Text(text) => {
+                        content.push_str(&text);
+                        print!("{}", text);
+                        std::io::stdout().flush().or_fail()?;
+                    }
+                    ContentBlock::ServerToolUse { id, name, input } => {
+                        eprintln!("Server tool use: id={}, name={}, input={}", id, name, input);
+                    }
+                },
                 Data::ContentBlockDelta { delta } => {
                     content.push_str(&delta.text);
                     print!("{}", delta.text);
@@ -176,12 +183,30 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
             "message_stop" => Ok(Self::MessageStop),
             "content_block_start" => {
                 let content_block = value.to_member("content_block")?.required()?;
-                let text = content_block.to_member("text")?.required()?;
-                Ok(Self::ContentBlockStart {
-                    content_block: ContentBlock {
-                        text: text.try_into()?,
-                    },
-                })
+                let block_type = content_block.to_member("type")?.required()?;
+
+                match block_type.to_unquoted_string_str()?.as_ref() {
+                    "text" => {
+                        let text = content_block.to_member("text")?.required()?;
+                        Ok(Self::ContentBlockStart {
+                            content_block: ContentBlock::Text(text.try_into()?),
+                        })
+                    }
+                    "server_tool_use" => {
+                        let id = content_block.to_member("id")?.required()?;
+                        let name = content_block.to_member("name")?.required()?;
+                        let input = content_block.to_member("input")?.required()?;
+
+                        Ok(Self::ContentBlockStart {
+                            content_block: ContentBlock::ServerToolUse {
+                                id: id.try_into()?,
+                                name: name.try_into()?,
+                                input: input.extract().into_owned(),
+                            },
+                        })
+                    }
+                    ty => Err(content_block.invalid(format!("unknown content block type: {ty}"))),
+                }
             }
             "content_block_delta" => {
                 let delta = value.to_member("delta")?.required()?;
@@ -209,8 +234,13 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
 }
 
 #[derive(Debug)]
-struct ContentBlock {
-    text: String,
+enum ContentBlock {
+    Text(String),
+    ServerToolUse {
+        id: String,
+        name: String,
+        input: nojson::RawJsonOwned,
+    },
 }
 
 #[derive(Debug)]

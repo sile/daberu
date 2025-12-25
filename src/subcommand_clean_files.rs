@@ -8,23 +8,14 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
         .example("YOUR_API_KEY")
         .take(args)
         .then(|a| a.value().parse())?;
-
-    let endpoint: String = noargs::opt("endpoint")
-        .short('e')
-        .ty("URL")
-        .doc("Files API endpoint")
-        .default("https://api.anthropic.com/v1/files")
-        .take(args)
-        .then(|a| a.value().parse())?;
-
     if args.metadata().help_mode {
         return Ok(());
     }
 
     // Get list of files
-    let response = crate::curl::CurlRequest::new(&endpoint)
+    let response = crate::curl::CurlRequest::new("https://api.anthropic.com/v1/files")
         .header("anthropic-version", "2023-06-01")
-        .header("anthropic-beta", "files-api-2025-02-14")
+        .header("anthropic-beta", "files-api-2025-04-14")
         .header("x-api-key", &api_key)
         .get()
         .or_fail()?
@@ -40,36 +31,34 @@ pub fn run(args: &mut noargs::RawArgs) -> noargs::Result<()> {
 
     // Iterate over files
     for file in files_value.to_array().or_fail()? {
-        let file_id: String = file
+        let file_id = file
             .to_member("id")?
             .required()
             .or_fail()?
             .to_unquoted_string_str()
-            .or_fail()?
-            .to_string();
+            .or_fail()?;
 
-        let filename: String = file
+        let filename = file
             .to_member("filename")?
             .required()
             .or_fail()?
             .to_unquoted_string_str()
-            .or_fail()?
-            .to_string();
+            .or_fail()?;
 
-        println!("Deleting file: {} ({})", filename, file_id);
+        println!("Deleting file: {filename} ({file_id})");
 
         // Delete the file
-        let delete_endpoint = format!("{}/{}", endpoint, file_id);
+        let delete_endpoint = format!("https://api.anthropic.com/v1/files/{file_id}");
         let _response = crate::curl::CurlRequest::new(&delete_endpoint)
             .header("anthropic-version", "2023-06-01")
-            .header("anthropic-beta", "files-api-2025-02-14")
+            .header("anthropic-beta", "files-api-2025-04-14")
             .header("x-api-key", &api_key)
             .delete()
             .or_fail()?
             .check_success()
             .or_fail()?;
 
-        println!("Successfully deleted: {}", filename);
+        println!("  => Successfully deleted: {filename}");
     }
 
     println!("All files cleaned up!");

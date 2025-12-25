@@ -92,9 +92,39 @@ impl Claude {
         let response = request_builder.post(request)?;
 
         let reader = response.check_success()?;
-        let reply = self.handle_stream_response(reader).or_fail()?;
+        let reply = if stream {
+            self.handle_stream_response(reader).or_fail()?
+        } else {
+            self.handle_response(reader).or_fail()?
+        };
 
         Ok(reply)
+    }
+
+    fn handle_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
+        let mut text = String::new();
+        let mut reader = reader;
+        reader.read_to_string(&mut text).or_fail()?;
+
+        let nojson::Json(response) = text
+            .parse::<nojson::Json<ApiResponse>>()
+            .or_fail_with(|e| format!("failed to parse response: {e}"))?;
+
+        let content = response
+            .content
+            .into_iter()
+            .filter_map(|block| match block {
+                ContentBlock::Text(text) => Some(text),
+                ContentBlock::ServerToolUse { .. } => None,
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+        Ok(Message {
+            role: Role::Assistant,
+            content,
+            model: Some(self.model.clone()),
+        })
     }
 
     fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
@@ -112,7 +142,7 @@ impl Claude {
                 break;
             }
 
-            let nojson::Json(data) = line[("data: ").len()..]
+            let nojson::Json(data) = line[(("data: ").len())..]
                 .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {
@@ -152,6 +182,22 @@ impl Claude {
             role: Role::Assistant,
             content,
             model: Some(self.model.clone()),
+        })
+    }
+}
+
+#[derive(Debug)]
+struct ApiResponse {
+    content: Vec<ContentBlock>,
+}
+
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ApiResponse {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
+        let content = value.to_member("content")?.required()?;
+        Ok(Self {
+            content: content.try_into()?,
         })
     }
 }
@@ -241,6 +287,31 @@ enum ContentBlock {
         name: String,
         input: nojson::RawJsonOwned,
     },
+}
+
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ContentBlock {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
+        let ty = value.to_member("type")?.required()?;
+        match ty.to_unquoted_string_str()?.as_ref() {
+            "text" => {
+                let text = value.to_member("text")?.required()?;
+                Ok(Self::Text(text.try_into()?))
+            }
+            "server_tool_use" => {
+                let id = value.to_member("id")?.required()?;
+                let name = value.to_member("name")?.required()?;
+                let input = value.to_member("input")?.required()?;
+                Ok(Self::ServerToolUse {
+                    id: id.try_into()?,
+                    name: name.try_into()?,
+                    input: input.extract().into_owned(),
+                })
+            }
+            ty => Err(value.invalid(format!("unknown content block type: {ty}"))),
+        }
+    }
 }
 
 #[derive(Debug)]

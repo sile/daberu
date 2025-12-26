@@ -1,0 +1,12 @@
+{
+  // Maximum byte size per resource
+  "resource_size_limit": 100000,
+
+  // Shell executable to use for running shell commands (--shell-command)
+  "shell_executable": "sh",
+
+  // TODO
+  "skill_presets": {
+    "official": ["xlsx", "pptx", "pdf", "docx"],
+  },
+}

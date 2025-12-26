@@ -4,6 +4,7 @@ use orfail::OrFail;
 
 use crate::{
     claude::{Claude, SkillId},
+    config::Config,
     message::MessageLog,
     resource::Resource,
 };
@@ -17,8 +18,8 @@ pub struct Command {
     pub model: String,
     pub system: Option<String>,
     pub resources: Vec<Resource>,
-    pub resource_size_limit: usize,
     pub skill_ids: Vec<SkillId>,
+    pub config: Config,
 }
 
 impl Command {

@@ -1,5 +1,7 @@
 {
   // Maximum byte size per resource
+  //
+  // If a resource exceeds this limit, the remaining content will be truncated
   "resource_size_limit": 100000,
 
   // Shell executable to use for running shell commands (--shell-command)

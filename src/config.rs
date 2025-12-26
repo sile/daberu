@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use orfail::OrFail;
 
 #[derive(Debug)]
 pub struct Config {
     pub resource_size_limit: usize,
-    pub shell_executable: PathBuf,
+    pub shell_executable: String,
     pub skill_presets: BTreeMap<String, Vec<String>>,
 }
 

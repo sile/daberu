@@ -107,7 +107,6 @@ impl Claude {
         let mut text = String::new();
         let mut reader = reader;
         reader.read_to_string(&mut text).or_fail()?;
-        std::fs::write("response.json", &text).or_fail()?;
 
         let nojson::Json(response) = text
             .parse::<nojson::Json<ApiResponse>>()

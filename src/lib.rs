@@ -1,5 +1,6 @@
 pub mod claude;
 pub mod command;
+pub mod config;
 pub mod curl;
 pub mod json;
 pub mod message;

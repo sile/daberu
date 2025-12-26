@@ -91,7 +91,15 @@ fn main() -> noargs::Result<()> {
         return Ok(());
     }
 
+    let config = noargs::opt("config-file")
+        .ty("PATH")
+        .env("DABERU_CONFIG_FILE")
+        .doc("Path to configuration JSONC file")
+        .take(&mut args)
+        .present_and_then(|a| daberu::config::Config::load(a.value()))?
+        .unwrap_or_default();
     let mut command = Command {
+        config,
         anthropic_api_key: noargs::opt("anthropic-api-key")
             .ty("STRING")
             .env("ANTHROPIC_API_KEY")
@@ -157,23 +165,12 @@ fn main() -> noargs::Result<()> {
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
-        resource_size_limit: noargs::opt("resource-size-limit")
-            .default("100000")
-            .ty("BYTE_SIZE")
-            .env("DABERU_RESOURCE_SIZE_LIMIT")
-            .doc(concat!(
-                "Maximum byte size per resource\n",
-                "\n",
-                "If a resource exceeds this limit, the remaining content will be truncated"
-            ))
-            .take(&mut args)
-            .then(|a| a.value().parse())?,
         skill_ids: std::iter::from_fn(|| {
             noargs::opt("skill")
                 .short('k')
                 .ty("SKILL_ID")
                 .doc(concat!(
-                    "Skill ID to use (e.g., 'pptx', 'skill_01ABC...')\n",
+                    "Skill ID or preset name to use (e.g., 'pptx', 'skill_01ABC...')\n",
                     "\n",
                     "Skill IDs starting with 'skill_' are treated as custom skills,\n",
                     "others are treated as Anthropic-provided skills.\n",
@@ -185,6 +182,7 @@ fn main() -> noargs::Result<()> {
         })
         .collect::<Result<_, _>>()?,
     };
+    command.resolve_skill_presets();
 
     if command.enable_agents_md {
         if let Ok(r) = FileResource::new("AGENTS.md") {
@@ -193,15 +191,6 @@ fn main() -> noargs::Result<()> {
             command.resources.insert(0, Resource::File(r));
         }
     }
-
-    let shell = noargs::opt("shell-executable")
-        .ty("SHELL")
-        .default("sh")
-        .env("DABERU_SHELL_EXECUTABLE")
-        .doc("Shell executable to use for running shell commands")
-        .take(&mut args)
-        .value()
-        .to_owned();
 
     while let Some(a) = noargs::opt("shell-command")
         .short('e')
@@ -214,9 +203,10 @@ fn main() -> noargs::Result<()> {
         .take(&mut args)
         .present()
     {
-        command
-            .resources
-            .push(Resource::Shell(ShellResource::new(&shell, a.value())));
+        command.resources.push(Resource::Shell(ShellResource::new(
+            &command.config.shell_executable,
+            a.value(),
+        )));
     }
     if let Some(help) = args.finish()? {
         print!("{help}");
@@ -229,7 +219,7 @@ fn main() -> noargs::Result<()> {
 
     for r in &mut command.resources {
         r.handle_input(&input).or_fail()?;
-        r.truncate(command.resource_size_limit);
+        r.truncate(command.config.resource_size_limit);
     }
 
     command.run(input).or_fail()?;

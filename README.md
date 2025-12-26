@@ -16,17 +16,19 @@ Claude client tool that reads your message from stdin and writes the response to
 Usage: daberu [OPTIONS]
 
 Options:
-      --version                         Print version
-  -h, --help                            Print help ('--help' for full help, '-h' for summary)
-      --anthropic-api-key <STRING>      Anthropic API key [env: ANTHROPIC_API_KEY]
-  -l, --log <PATH>                      Path to log file for saving the last conversation [env: DABERU_LOG_PATH]
-  -c, --continue                        Continue conversation from the existing log file instead of truncating it
-  -m, --model <MODEL_NAME>              Model name [env: DABERU_MODEL] [default: claude-sonnet-4-20250514]
-  -s, --system <STRING>                 System message
-  -r, --resource <PATH>                 File path to be used as a resource for the conversion
-      --resource-size-limit <BYTE_SIZE> Maximum byte size per resource [env: DABERU_RESOURCE_SIZE_LIMIT] [default: 100000]
-      --shell-executable <SHELL>        Shell executable to use for running shell commands [env: DABERU_SHELL_EXECUTABLE] [default: sh]
-  -e, --shell-command <COMMAND>         Shell command to be used as a resource for the conversion
+      --version                    Print version
+  -h, --help                       Print help ('--help' for full help, '-h' for summary)
+  -x, --ext                        Enable extended subcommands
+      --config-file <PATH>         Path to configuration JSONC file [env: DABERU_CONFIG_FILE]
+      --anthropic-api-key <STRING> Anthropic API key [env: ANTHROPIC_API_KEY]
+  -l, --log <PATH>                 Path to log file for saving the last conversation [env: DABERU_LOG_PATH]
+  -c, --continue                   Continue conversation from the existing log file instead of truncating it
+  -a, --enable-agents-md           Automatically load AGENTS.md or CLAUDE.md as a resource [env: DABERU_ENABLE_AGENTS_MD]
+  -m, --model <MODEL_NAME>         Model name [env: DABERU_MODEL] [default: claude-sonnet-4-5]
+  -s, --system <STRING>            System message
+  -r, --resource <PATH>            File path to be used as a resource for the conversion
+  -k, --skill <SKILL_ID>           Skill ID or preset name to use (e.g., 'pptx', 'skill_01ABC...')
+  -e, --shell-command <COMMAND>    Shell command to be used as a resource for the conversion
 ```
 
 Installation

@@ -155,7 +155,7 @@ impl Claude {
                 break;
             }
 
-            let nojson::Json(data) = line[(("data: ").len())..]
+            let nojson::Json(data) = line["data: ".len()..]
                 .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {

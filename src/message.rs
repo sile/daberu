@@ -10,7 +10,7 @@ pub struct Message {
     pub content: String,
     pub model: Option<String>,
     pub container_id: Option<String>,
-    // TODO: files_ids: Vec<String>
+    pub file_ids: Vec<String>,
 }
 
 impl nojson::DisplayJson for Message {
@@ -31,6 +31,9 @@ impl nojson::DisplayJson for Message {
             if let Some(container_id) = &self.container_id {
                 f.member("container_id", container_id)?;
             }
+            if !self.file_ids.is_empty() {
+                f.member("file_ids", &self.file_ids)?;
+            }
             Ok(())
         })
     }
@@ -44,6 +47,7 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Message {
         let content = value.to_member("content")?.required()?;
         let model = value.to_member("model")?;
         let container_id = value.to_member("container_id")?;
+        let file_ids = value.to_member("file_ids")?;
 
         Ok(Self {
             role: match role.to_unquoted_string_str()?.as_ref() {
@@ -60,6 +64,7 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Message {
             content: content.try_into()?,
             model: model.try_into()?,
             container_id: container_id.try_into()?,
+            file_ids: file_ids.map(|v| v.try_into())?.unwrap_or_default(),
         })
     }
 }
@@ -129,6 +134,7 @@ Please consider the following JSON array as the resources:
             content: input,
             model: None,
             container_id: None,
+            file_ids: Vec::new(),
         });
         Ok(())
     }
@@ -140,6 +146,7 @@ Please consider the following JSON array as the resources:
                 content: system.to_owned(),
                 model: None,
                 container_id: None,
+                file_ids: Vec::new(),
             });
         }
     }

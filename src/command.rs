@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use orfail::OrFail;
 
-use crate::{claude::Claude, message::MessageLog, resource::Resource};
+use crate::{
+    claude::{Claude, SkillId},
+    message::MessageLog,
+    resource::Resource,
+};
 
 #[derive(Debug)]
 pub struct Command {
@@ -14,6 +18,7 @@ pub struct Command {
     pub system: Option<String>,
     pub resources: Vec<Resource>,
     pub resource_size_limit: usize,
+    pub skill_ids: Vec<SkillId>,
 }
 
 impl Command {

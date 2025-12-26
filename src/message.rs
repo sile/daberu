@@ -105,7 +105,7 @@ impl MessageLog {
         self.messages
             .iter()
             .rev()
-            .find_map(|m| m.container_id.as_ref().map(|c| c.as_str()))
+            .find_map(|m| m.container_id.as_deref())
     }
 
     pub fn read_input(&mut self, mut input: String, resources: &[Resource]) -> orfail::Result<()> {

@@ -7,7 +7,9 @@
   // Shell executable to use for running shell commands (--shell-command)
   "shell_executable": "sh",
 
-  // TODO
+  // Preset groups of skills that can be referenced by name instead of listing individual skills.
+  // TODO: Document the expected preset names and corresponding skill IDs, and extend this map
+  //       if additional presets (e.g., "experimental", "minimal") are introduced in the future.
   "skill_presets": {
     "official": ["xlsx", "pptx", "pdf", "docx"],
   },

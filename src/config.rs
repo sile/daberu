@@ -14,7 +14,7 @@ impl Config {
     pub fn load<P: AsRef<Path>>(path: P) -> orfail::Result<Self> {
         let text = std::fs::read_to_string(path).or_fail()?;
         let (raw, _) = nojson::RawJson::parse_jsonc(&text).or_fail()?;
-        Ok(Self::try_from(raw.value()).or_fail()?)
+        Self::try_from(raw.value()).or_fail()
     }
 }
 

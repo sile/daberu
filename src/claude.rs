@@ -107,13 +107,13 @@ impl Claude {
         let mut text = String::new();
         let mut reader = reader;
         reader.read_to_string(&mut text).or_fail()?;
+        std::fs::write("response.json", &text).or_fail()?;
 
         let nojson::Json(response) = text
             .parse::<nojson::Json<ApiResponse>>()
             .or_fail_with(|e| format!("failed to parse response: {e}"))?;
 
         let mut content = String::new();
-        let mut file_ids = Vec::new();
 
         for block in response.content {
             match block {
@@ -124,12 +124,8 @@ impl Claude {
                 ContentBlock::ServerToolUse { id, name, .. } => {
                     content.push_str(&format!("[Tool: {name} ({id})]\n"));
                 }
-                ContentBlock::ToolResult {
-                    tool_use_id,
-                    content: tool_content,
-                } => {
+                ContentBlock::ToolResult { tool_use_id, .. } => {
                     content.push_str(&format!("[Result from tool {tool_use_id}]\n\n------\n\n"));
-                    extract_file_ids_from_tool_result(&tool_content, &mut file_ids);
                 }
             }
         }
@@ -140,14 +136,12 @@ impl Claude {
             content,
             model: Some(self.model.clone()),
             container_id: response.container.map(|c| c.id),
-            file_ids,
         })
     }
 
     fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
         let mut container_id: Option<String> = None;
-        let mut file_ids = Vec::new();
 
         for line in reader.lines() {
             let line = line.or_fail()?;
@@ -203,7 +197,6 @@ impl Claude {
                         content: tool_content,
                     } => {
                         eprintln!("Tool result: tool_use_id={tool_use_id}, content={tool_content}");
-                        extract_file_ids_from_tool_result(&tool_content, &mut file_ids);
                     }
                 },
                 Data::ContentBlockDelta { delta } => {
@@ -226,7 +219,6 @@ impl Claude {
             content,
             model: Some(self.model.clone()),
             container_id,
-            file_ids,
         })
     }
 }
@@ -434,22 +426,5 @@ impl std::str::FromStr for SkillId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(s.to_owned()))
-    }
-}
-
-fn extract_file_ids_from_tool_result(
-    tool_result: &nojson::RawJsonOwned,
-    file_ids: &mut Vec<String>,
-) {
-    let Ok(content_array) = tool_result.value().to_array() else {
-        return;
-    };
-    for item in content_array {
-        let Ok(file_id_raw) = item.to_member("file_id").and_then(|m| m.required()) else {
-            continue;
-        };
-        if let Ok(file_id_str) = file_id_raw.to_unquoted_string_str() {
-            file_ids.push(file_id_str.to_string());
-        }
     }
 }

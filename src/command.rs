@@ -50,4 +50,19 @@ impl Command {
 
         Ok(())
     }
+
+    pub fn resolve_skill_presets(&mut self) {
+        let mut skill_ids = Vec::new();
+        for id in &self.skill_ids {
+            if let Some(resolved) = self.config.skill_presets.get(&id.0) {
+                skill_ids.extend(resolved.iter().cloned().map(SkillId));
+            } else {
+                skill_ids.push(id.clone());
+            }
+        }
+
+        skill_ids.sort();
+        skill_ids.dedup();
+        self.skill_ids = skill_ids;
+    }
 }

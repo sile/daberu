@@ -407,8 +407,8 @@ struct Delta {
     text: String,
 }
 
-#[derive(Debug, Clone)]
-pub struct SkillId(String);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SkillId(pub String);
 
 impl SkillId {
     pub fn source(&self) -> &'static str {

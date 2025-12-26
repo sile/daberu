@@ -182,6 +182,7 @@ fn main() -> noargs::Result<()> {
         })
         .collect::<Result<_, _>>()?,
     };
+    command.resolve_skill_presets();
 
     if command.enable_agents_md {
         if let Ok(r) = FileResource::new("AGENTS.md") {

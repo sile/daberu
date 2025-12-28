@@ -12,6 +12,6 @@
     "official": ["xlsx", "pptx", "pdf", "docx"],
   },
 
-  // TODO: doc
+  // Preset groups of resources that can be referenced by name instead of listing individual resources.
   "resource_presets": {},
 }

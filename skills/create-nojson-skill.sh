@@ -10,6 +10,5 @@ echo 'Create skill files for this Rust crate and upload the final .skill file. [
   daberu -k skill-creator \
     -r README.md \
     -r Cargo.toml \
-    -g src/*.rs \
-    -g tests/*.rs
-
+    -g 'src/*.rs' \
+    -g 'tests/*.rs'

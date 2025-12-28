@@ -6,9 +6,7 @@
   },
   "resource_presets": {
     "nojson": [
-      {"type": "glob", "pattern": "~/rust/nojson/README.md"},
-      {"type": "glob", "pattern": "~/rust/nojson/Cargo.toml"},
-      {"type": "glob", "pattern": "~/rust/nojson/src/**.rs"},
+      {"type": "glob", "pattern": "~/rust/daberu/skills/nojson/**.md"},
     ],
   },
 }

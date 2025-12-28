@@ -208,6 +208,24 @@ fn main() -> noargs::Result<()> {
             a.value(),
         )));
     }
+
+    while let Some(a) = noargs::opt("glob")
+        .short('g')
+        .ty("PATTERN")
+        .doc(concat!(
+            "Glob pattern to match files to be used as resources\n",
+            "\n",
+            "This option can be specified multiple times"
+        ))
+        .take(&mut args)
+        .present()
+    {
+        let spec = daberu::resource::ResourceSpec::Glob {
+            pattern: a.value().to_string(),
+        };
+        spec.extend_resources(&command.config, &mut command.resources)?;
+    }
+
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());

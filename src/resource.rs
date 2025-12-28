@@ -7,6 +7,85 @@ use nojson::DisplayJson;
 use orfail::OrFail;
 
 #[derive(Debug)]
+pub enum ResourceSpec {
+    File { path: PathBuf },
+    Glob { pattern: String },
+    Shell { command: String },
+}
+
+impl ResourceSpec {
+    pub fn extend_resources(
+        &self,
+        config: &crate::config::Config,
+        resources: &mut Vec<Resource>,
+    ) -> orfail::Result<()> {
+        match self {
+            ResourceSpec::File { path } => {
+                let file_resource = FileResource::new(path)?;
+                resources.push(Resource::File(file_resource));
+                Ok(())
+            }
+            ResourceSpec::Shell { command } => {
+                let shell_resource = ShellResource::new(&config.shell_executable, command);
+                resources.push(Resource::Shell(shell_resource));
+                Ok(())
+            }
+            ResourceSpec::Glob { pattern } => {
+                // Execute 'ls pattern' to expand glob pattern using configured shell
+                let output = std::process::Command::new(&config.shell_executable)
+                    .arg("-c")
+                    .arg(format!("ls {pattern}"))
+                    .output()
+                    .or_fail_with(|e| format!("failed to execute glob expansion: {e}"))?;
+
+                if !output.status.success() {
+                    return Err(orfail::Failure::new(format!(
+                        "glob pattern '{pattern}' matched no files"
+                    )));
+                }
+
+                let file_list = String::from_utf8(output.stdout)
+                    .or_fail_with(|e| format!("glob output is not valid UTF-8: {e}"))?;
+
+                // Process each file path from the output
+                for file_path in file_list.lines() {
+                    let trimmed_path = file_path.trim();
+                    if !trimmed_path.is_empty() {
+                        let file_resource = FileResource::new(trimmed_path)?;
+                        resources.push(Resource::File(file_resource));
+                    }
+                }
+
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ResourceSpec {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
+        let ty = value.to_member("type")?.required()?;
+        match ty.to_unquoted_string_str()?.as_ref() {
+            "file" => {
+                let path = value.to_member("path")?.required()?.try_into()?;
+                Ok(ResourceSpec::File { path })
+            }
+            "glob" => {
+                let pattern = value.to_member("pattern")?.required()?.try_into()?;
+                Ok(ResourceSpec::Glob { pattern })
+            }
+            "shell" => {
+                let command = value.to_member("command")?.required()?.try_into()?;
+                Ok(ResourceSpec::Shell { command })
+            }
+            _ => Err(ty.invalid("unknown resource type")),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Resource {
     File(FileResource),
     Shell(ShellResource),

@@ -7,6 +7,36 @@ use nojson::DisplayJson;
 use orfail::OrFail;
 
 #[derive(Debug)]
+pub enum ResourceSpec {
+    File { path: PathBuf },
+    Glob { pattern: String },
+    Shell { command: String },
+}
+
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ResourceSpec {
+    type Error = nojson::JsonParseError;
+
+    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
+        let ty = value.to_member("type")?.required()?;
+        match ty.to_unquoted_string_str()?.as_ref() {
+            "file" => {
+                let path = value.to_member("path")?.required()?.try_into()?;
+                Ok(ResourceSpec::File { path })
+            }
+            "glob" => {
+                let pattern = value.to_member("pattern")?.required()?.try_into()?;
+                Ok(ResourceSpec::Glob { pattern })
+            }
+            "shell" => {
+                let command = value.to_member("command")?.required()?.try_into()?;
+                Ok(ResourceSpec::Shell { command })
+            }
+            _ => Err(ty.invalid("unknown resource type")),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Resource {
     File(FileResource),
     Shell(ShellResource),

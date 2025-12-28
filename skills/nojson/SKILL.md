@@ -1,293 +1,262 @@
 ---
-name: nojson
-description: |
-  Flexible JSON library for Rust with no dependencies. Supports strong typing, custom validation, JSONC with comments, and flexible formatting. Use when working with JSON parsing, validation, generation, or transformation. Use this skill when Claude needs to: parse JSON text into Rust types, generate JSON from Rust values, work with raw JSON values preserving original text, implement custom JSON validation, handle JSONC format with comments, format JSON with custom indentation/spacing, or provide rich error context for JSON parsing failures.
+name: nojson-rust
+description: Flexible Rust JSON library (nojson crate) for parsing and generating JSON without dependencies or macros. Use when working with JSON in Rust and need (1) parsing JSON text into Rust types with TryFrom, (2) generating JSON from Rust types with DisplayJson trait, (3) custom validation during parsing, (4) low-level JSON access without strict type mapping, (5) pretty-printing with custom formatting, (6) JSONC support (JSON with comments and trailing commas), (7) precise error messages with position context, or (8) flexible mix of type-safe and imperative JSON handling.
 ---
 
-# nojson Skill
+# nojson Rust Crate
 
-nojson is a no-dependency, no-macro JSON library for Rust that balances type-safety with the dynamic nature of JSON. Unlike serde, which requires strict one-to-one type mapping, nojson provides a flexible toolbox approach.
+## Overview
 
-## Quick Start
+The `nojson` crate provides flexible JSON parsing and generation for Rust without dependencies or macros. Unlike serde's strict one-to-one type mapping, nojson offers a toolbox approach mixing type-level programming with imperative flexibility.
 
-### Parse JSON to Rust Types
+**Key capabilities:**
+- Parse JSON to Rust types via `TryFrom<nojson::RawJsonValue>`
+- Generate JSON via `DisplayJson` trait
+- Low-level JSON access without full type conversion
+- Custom validation with rich error context
+- Pretty-printing with configurable indentation
+- JSONC support (comments + trailing commas)
 
-Use qualified names like `nojson::Json`, `nojson::RawJson`, `nojson::RawJsonValue`:
+## Quick Start Patterns
 
+### Parse JSON to Rust types
 ```rust
 use nojson::Json;
 
-fn main() -> Result<(), nojson::JsonParseError> {
-    let text = "[1, null, 2]";
-    let value: Json<[Option<u32>; 3]> = text.parse()?;
-    assert_eq!(value.0, [Some(1), None, Some(2)]);
-    Ok(())
-}
+// Direct parsing
+let value: Json<Vec<i32>> = "[1, 2, 3]".parse()?;
+
+// With nulls
+let value: Json<Vec<Option<i32>>> = "[1, null, 3]".parse()?;
 ```
 
-### Generate JSON from Rust Types
-
+### Generate JSON from Rust types
 ```rust
 use nojson::Json;
 
-let array = [Some(1), None, Some(2)];
-assert_eq!(Json(array).to_string(), "[1,null,2]");
+let json = Json(vec![1, 2, 3]).to_string();
+// Output: [1,2,3]
 ```
 
-### Work with Raw JSON Values
-
-Parse JSON while preserving original text:
-
+### Low-level JSON access
 ```rust
-use nojson::RawJson;
-
-let json = nojson::RawJson::parse(r#"{"name":"Alice","age":30}"#)?;
-let name: String = json.value()
-    .to_member("name")?.required()?
-    .try_into()?;
+let json = nojson::RawJson::parse(r#"{"name": "Alice", "age": 30}"#)?;
+let name: String = json.value().to_member("name")?.required()?.try_into()?;
 ```
 
-### Pretty-Print JSON
-
+### Pretty printing
 ```rust
-use nojson::json;
-
 let output = nojson::json(|f| {
     f.set_indent_size(2);
     f.set_spacing(true);
-    f.object(|f| {
-        f.member("name", "Alice")?;
-        f.member("age", 30)
-    })
+    f.value([1, 2, 3])
 });
 ```
 
-## Core Patterns
+## Custom Types
 
-### Parse with Type Conversion
-
-Use `nojson::RawJson::parse()` to parse, then `TryFrom<nojson::RawJsonValue<'_, '_>>` to convert:
-
+### Implement parsing (TryFrom)
 ```rust
-let json = nojson::RawJson::parse(text)?;
+use nojson::{RawJsonValue, JsonParseError};
 
-// Scalar types
-let num: u32 = json.value().try_into()?;
-let text: String = json.value().try_into()?;
+struct Person { name: String, age: u32 }
 
-// Collections
-let array: Vec<String> = json.value().try_into()?;
-let map: std::collections::HashMap<String, i32> = json.value().try_into()?;
-
-// Custom types
-impl<'text, 'raw> std::convert::TryFrom<nojson::RawJsonValue<'text, 'raw>> for MyType {
-    type Error = nojson::JsonParseError;
-    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
-        // Implementation
-    }
-}
-let custom: MyType = json.value().try_into()?;
-```
-
-### Access Object Members
-
-```rust
-let member = value.to_member("field_name")?;
-
-// Required member
-let required_value = member.required()?;
-
-// Optional member
-let optional: Option<String> = member.try_into()?;
-
-// With transformation
-let transformed: Option<u32> = member.map(|v| v.try_into())?;
-```
-
-### Iterate Collections
-
-**Arrays:**
-```rust
-for item in json.value().to_array()? {
-    let parsed: u32 = item.try_into()?;
-}
-```
-
-**Objects:**
-```rust
-for (key, value) in json.value().to_object()? {
-    let name = key.to_unquoted_string_str()?;
-    let val: String = value.try_into()?;
-}
-```
-
-### Custom Validation
-
-```rust
-let json = nojson::RawJson::parse(text)?;
-let num: u32 = json.value()
-    .as_number_str()?
-    .parse()
-    .map_err(|e| json.value().invalid(e))?;
-
-if num == 0 {
-    return Err(json.value().invalid("Expected positive number"));
-}
-```
-
-### Generate JSON from Custom Types
-
-Implement `nojson::DisplayJson` for your types:
-
-```rust
-use nojson::{DisplayJson, JsonFormatter};
-
-impl DisplayJson for MyType {
-    fn fmt(&self, f: &mut JsonFormatter<'_, '_>) -> std::fmt::Result {
-        f.object(|f| {
-            f.member("field1", &self.field1)?;
-            f.member("field2", &self.field2)
+impl<'text, 'raw> TryFrom<RawJsonValue<'text, 'raw>> for Person {
+    type Error = JsonParseError;
+    
+    fn try_from(value: RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
+        Ok(Person {
+            name: value.to_member("name")?.required()?.try_into()?,
+            age: value.to_member("age")?.required()?.try_into()?,
         })
     }
 }
-
-// Now you can use it
-let obj = MyType { /* ... */ };
-assert_eq!(nojson::Json(&obj).to_string(), r#"{"field1":"...","field2":"..."}"#);
 ```
 
-### Format JSON Output
-
-Use `nojson::json()` to control formatting:
-
+### Implement generation (DisplayJson)
 ```rust
-let output = nojson::json(|f| {
-    f.set_indent_size(4);      // 4 spaces per level
-    f.set_spacing(true);        // Add spaces after colons/commas
-    f.object(|f| {
-        f.member("key", "value")?;
-        f.member("array", &[1, 2, 3])
-    })
-});
-```
+use nojson::{DisplayJson, JsonFormatter};
 
-### Handle JSONC (with Comments)
-
-Parse JSON that includes comments and trailing commas:
-
-```rust
-let (json, comment_ranges) = nojson::RawJson::parse_jsonc(text)?;
-
-// comment_ranges: Vec<Range<usize>> - byte positions of comments
-
-for range in comment_ranges {
-    let comment_text = &text[range];
-    println!("Found comment: {}", comment_text);
+impl DisplayJson for Person {
+    fn fmt(&self, f: &mut JsonFormatter<'_, '_>) -> std::fmt::Result {
+        f.object(|f| {
+            f.member("name", &self.name)?;
+            f.member("age", self.age)
+        })
+    }
 }
 ```
 
-### Error Context and Debugging
+## Custom Validation
+
+Add application-specific validation during parsing:
+
+```rust
+fn parse_positive_number(text: &str) -> Result<u32, nojson::JsonParseError> {
+    let json = nojson::RawJson::parse(text)?;
+    let value = json.value();
+    
+    let num: u32 = value.as_number_str()?.parse()
+        .map_err(|e| value.invalid(e))?;
+    
+    if num == 0 {
+        return Err(value.invalid("Expected positive number, got 0"));
+    }
+    
+    Ok(num)
+}
+```
+
+## Key Type Usage
+
+### nojson::RawJsonValue - Core parsing type
+```rust
+// Type checking
+value.kind() // Get JsonValueKind
+value.as_integer_str()? // Verify integer, return text
+value.as_number_str()? // Verify number (int or float)
+value.to_unquoted_string_str()? // Verify string, return unquoted
+
+// Arrays
+for element in value.to_array()? {
+    let item: i32 = element.try_into()?;
+}
+
+// Objects
+let name: String = value.to_member("name")?.required()?.try_into()?;
+let city: Option<String> = value.to_member("city")?.try_into()?;
+
+// Navigation
+value.parent() // Parent array/object
+value.root() // Root value
+value.extract() // Extract as separate RawJson
+```
+
+### nojson::JsonFormatter - Core generation type
+```rust
+nojson::json(|f| {
+    f.set_indent_size(2); // Spaces per level
+    f.set_spacing(true); // Space after :,{
+    
+    f.object(|f| {
+        f.member("name", "Alice")?;
+        f.member("age", 30)?;
+        f.member("items", nojson::array(|f| {
+            f.element(1)?;
+            f.element(2)?;
+            f.element(3)
+        }))
+    })
+})
+```
+
+## Error Handling
 
 ```rust
 match nojson::RawJson::parse(text) {
     Err(error) => {
-        // Get error position
-        let pos = error.position();
-        
-        // Get line and column (1-indexed)
+        // Get position context
         if let Some((line, col)) = error.get_line_and_column_numbers(text) {
-            println!("Error at line {}, column {}", line.get(), col.get());
+            eprintln!("Error at line {}, column {}", line, col);
         }
         
-        // Get the full line containing the error
-        if let Some(line) = error.get_line(text) {
-            println!("Line: {}", line);
+        // Get error line
+        if let Some(line_text) = error.get_line(text) {
+            eprintln!("Line: {}", line_text);
         }
         
-        // Get the specific value where error occurred
-        if let Some(value) = RawJson::parse(text)
-            .ok()
-            .and_then(|j| j.get_value_by_position(error.position())) {
-            println!("Value: {}", value.as_raw_str());
+        // Find value at error position
+        if let Ok(json) = nojson::RawJson::parse(valid_prefix) {
+            if let Some(value) = json.get_value_by_position(error.position()) {
+                eprintln!("Problem near: {}", value.as_raw_str());
+            }
         }
     }
-    Ok(_) => { /* ... */ }
+    Ok(json) => { /* use json */ }
 }
 ```
 
-### Navigate JSON Structure
+## JSONC Support
+
+Parse JSON with comments and trailing commas:
 
 ```rust
-// Get parent (containing array/object)
-let parent = value.parent();
+let text = r#"{
+    "name": "Alice", // User name
+    "age": 30,       // Trailing comma allowed
+}"#;
 
-// Get root (top-level value) - O(1) operation
-let root = value.root();
-
-// Find value at byte position
-if let Some(value) = json.get_value_by_position(position) {
-    // ...
-}
-
-// Extract substructure as separate RawJson
-let subtree: nojson::RawJson = value.extract();
+let (json, comment_ranges) = nojson::RawJson::parse_jsonc(text)?;
+// comment_ranges: Vec<Range<usize>> of comment positions
 ```
 
-## Key Types Reference
+## Reference Files
 
-See `references/api-guide.md` for complete type documentation:
-- `nojson::Json<T>` - Wrapper for parsing/displaying types
-- `nojson::RawJson<'text>` - Parsed JSON preserving original text
-- `nojson::RawJsonOwned` - Owned version of RawJson
-- `nojson::RawJsonValue<'text, 'raw>` - A JSON value with structural info
-- `nojson::RawJsonMember<'text, 'raw, 'a>` - Object member access result
-- `nojson::JsonValueKind` - Enum: Null, Boolean, Integer, Float, String, Array, Object
-- `nojson::JsonParseError` - Comprehensive error type with position info
-- `nojson::DisplayJson` - Trait for JSON generation
-- `nojson::JsonFormatter<'a, 'b>` - Formatting control
-- `nojson::JsonArrayFormatter<'a, 'b, 'c>` - Array builder
-- `nojson::JsonObjectFormatter<'a, 'b, 'c>` - Object builder
-
-## Common Usage Examples
-
-See `references/examples.md` for detailed examples including:
-- Parsing arrays, objects, nested structures
-- Type conversions and custom validations
-- Generating JSON with formatting
-- Working with raw values and JSONC
-- Stream processing and polymorphic JSON
-- Error handling with context
-
-## Type Conversion Support
-
-Automatic `TryFrom<nojson::RawJsonValue>` implementations available for:
-
-**Scalars:** bool, i8-i128, u8-u128, isize, usize, f32, f64, char, String
-
-**NonZero types:** NonZeroI8, NonZeroU8, NonZeroI16, NonZeroU16, NonZeroI32, NonZeroU32, NonZeroI64, NonZeroU64, NonZeroI128, NonZeroU128, NonZeroIsize, NonZeroUsize
-
-**Collections:** Vec<T>, VecDeque<T>, BTreeSet<T>, HashSet<T>, BTreeMap<K, V>, HashMap<K, V>, [T; N] (fixed-size arrays)
-
-**References:** Box<T>, Rc<T>, Arc<T>, Option<T>
-
-**Standard types:** Path, PathBuf, IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6
-
-**Unit type:** () (null)
+- **[api.md](references/api.md)** - Complete API reference for all types and methods
+- **[patterns.md](references/patterns.md)** - Common usage patterns and examples
 
 ## Important Notes
 
-1. **Use fully qualified names** when writing code - include crate name like `nojson::RawJson`, not just `RawJson`
+### Always use fully qualified names
+Do NOT use imports. Write `nojson::RawJsonValue` instead of importing and using `RawJsonValue`.
 
-2. **Lifetime parameters** - `RawJsonValue<'text, 'raw>` has two lifetimes: `'text` for input text, `'raw` for value indices
+**Correct:**
+```rust
+use nojson::{RawJsonValue, JsonParseError};
 
-3. **No macros** - nojson uses no procedural macros, only standard trait implementations
+impl<'text, 'raw> TryFrom<RawJsonValue<'text, 'raw>> for MyType {
+    type Error = JsonParseError;
+    fn try_from(value: RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
+        // implementation
+    }
+}
+```
 
-4. **Zero dependencies** - nojson depends only on Rust's standard library
+**Incorrect:**
+```rust
+use nojson::*;
+// Don't do this
+```
 
-5. **JSONC support** - Use `parse_jsonc()` for JSON with comments and trailing commas
+### Lifetime parameters for TryFrom
+When implementing `TryFrom<RawJsonValue>`, use `<'text, 'raw>` lifetime parameters:
 
-6. **Custom validation** - Use `value.invalid(error)` to create validation errors with proper error context
+```rust
+impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for MyType {
+    type Error = nojson::JsonParseError;
+    // ...
+}
+```
 
-7. **Performance** - `value.root()` is O(1), but `value.parent()` requires traversal. `to_member()` is O(n) in object size.
+### Custom validation pattern
+Always use `value.invalid(error)` to create validation errors:
 
-8. **Memory** - `RawJson` borrows from input text. Use `RawJsonOwned` or `into_owned()` for owned versions.
+```rust
+let num: u32 = value.as_number_str()?.parse()
+    .map_err(|e| value.invalid(e))?;
+
+if num == 0 {
+    return Err(value.invalid("Must be positive"));
+}
+```
+
+### Member access performance
+`to_member()` is O(n). For multiple members, iterate once:
+
+```rust
+// Efficient for many members
+let mut name = None;
+let mut age = None;
+for (key, value) in obj.to_object()? {
+    match key.to_unquoted_string_str()?.as_ref() {
+        "name" => name = Some(value),
+        "age" => age = Some(value),
+        _ => {}
+    }
+}
+```
+
+### Built-in type conversions
+The crate provides `TryFrom<RawJsonValue>` for: primitives, NonZero types, String, Cow<str>, Vec, arrays, HashMap, BTreeMap, HashSet, BTreeSet, Option, Box, Rc, Arc, network types (IpAddr, SocketAddr), PathBuf, and () for null.
+
+It provides `DisplayJson` for all the same types plus references (&T, &mut T).

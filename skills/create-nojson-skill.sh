@@ -8,7 +8,10 @@ cd ~/rust/nojson/
 
 echo 'Create skill files for this Rust crate and upload the final .skill file. [NOTE] always use full qualified name such as nojson::RawJsonValue (not use imports)' | \
   daberu -k skill-creator \
+    -m claude-sonnet-4-5 \
     -r README.md \
     -r Cargo.toml \
     -g 'src/*.rs' \
     -g 'tests/*.rs'
+
+daberu -x list-files | jq '.data | map(select(.filename | endswith(".skill"))) | max_by(.created_at)'

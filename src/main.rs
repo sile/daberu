@@ -244,7 +244,7 @@ fn main() -> noargs::Result<()> {
                 spec.extend_resources(&command.config, &mut command.resources)?;
             }
         } else {
-            return Err(orfail::Failure::new(format!(
+            Err(orfail::Failure::new(format!(
                 "unknown resource preset: '{preset_name}'"
             )))?;
         }

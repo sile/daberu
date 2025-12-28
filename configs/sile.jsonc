@@ -6,6 +6,9 @@
   },
   "resource_presets": {
     "nojson": [
+      {"type": "glob", "pattern": "~/rust/daberu/llm-docs/nojson.md"},
+    ],
+    "nojson-skill": [
       {"type": "glob", "pattern": "~/rust/daberu/skills/nojson/**.md"},
     ],
   },

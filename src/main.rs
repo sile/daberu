@@ -226,6 +226,30 @@ fn main() -> noargs::Result<()> {
         spec.extend_resources(&command.config, &mut command.resources)?;
     }
 
+    while let Some(a) = noargs::opt("resource-preset")
+        .short('p')
+        .ty("PRESET_NAME")
+        .doc(concat!(
+            "Resource preset name to use\n",
+            "\n",
+            "Preset names are defined in the configuration file.\n",
+            "This option can be specified multiple times"
+        ))
+        .take(&mut args)
+        .present()
+    {
+        let preset_name = a.value();
+        if let Some(specs) = command.config.resource_presets.get(preset_name) {
+            for spec in specs {
+                spec.extend_resources(&command.config, &mut command.resources)?;
+            }
+        } else {
+            Err(orfail::Failure::new(format!(
+                "unknown resource preset: '{preset_name}'"
+            )))?;
+        }
+    }
+
     if let Some(help) = args.finish()? {
         print!("{help}");
         return Ok(());

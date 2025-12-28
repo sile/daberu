@@ -11,5 +11,8 @@
     "nojson-skill": [
       {"type": "glob", "pattern": "~/rust/daberu/skills/nojson/**.md"},
     ],
+    "noargs": [
+      {"type": "glob", "pattern": "~/rust/daberu/llm-docs/noargs.md"},
+    ],
   },
 }

@@ -4,4 +4,11 @@
   "skill_presets": {
     "skill-creator": ["skill_017k1ZEfMVCgGUKhLgKS4Mp9"],
   },
+  "resource_presets": {
+    "nojson": [
+      {"glob": "~/rust/nojson/README.md"},
+      {"glob": "~/rust/nojson/Cargo.toml"},
+      {"glob": "~/rust/nojson/src/**.rs"},
+    ],
+  },
 }

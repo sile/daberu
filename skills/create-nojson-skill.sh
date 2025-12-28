@@ -6,7 +6,10 @@ daberu -x clean-files
 
 cd ~/rust/nojson/
 
-echo 'Create skill files for this Rust crate and upload the final .skill file. [NOTE] always use full qualified name such as nojson::RawJsonValue (not use imports)' | \
+echo 'Create skill files for this Rust crate and upload the final .skill file. 
+      NOTE:
+      - Skill name is "nojson"
+      - Do not use `use`. Please use full qualified names such as nojson::RawJsonValue in the code' | \
   daberu -k skill-creator \
     -m claude-sonnet-4-5 \
     -r README.md \

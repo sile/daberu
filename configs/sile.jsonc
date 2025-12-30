@@ -14,5 +14,8 @@
     "noargs": [
       {"type": "glob", "pattern": "~/rust/daberu/llm-docs/noargs.md"},
     ],
+    "tuinix": [
+      {"type": "glob", "pattern": "~/rust/daberu/llm-docs/tuinix.md"},
+    ],
   },
 }

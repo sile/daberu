@@ -17,5 +17,8 @@
     "orfail": [
       {"type": "glob", "pattern": "~/rust/daberu/llm-docs/orfail.md"},
     ],
+    "mp4-rust": [
+      {"type": "glob", "pattern": "~/rust/daberu/llm-docs/mp4-rust.md"},
+    ],
   },
 }

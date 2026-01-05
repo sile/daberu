@@ -29,60 +29,6 @@ fn main() -> noargs::Result<()> {
             .is_present()
         {
             daberu::subcommand_last::run(&mut args)?;
-        } else if noargs::cmd("list-skills")
-            .doc("List available skills")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_list_skills::run(&mut args)?;
-        } else if noargs::cmd("create-skill")
-            .doc("Create a new skill from a directory")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_create_skill::run(&mut args)?;
-        } else if noargs::cmd("get-skill")
-            .doc("Retrieve details about a specific skill")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_get_skill::run(&mut args)?;
-        } else if noargs::cmd("delete-skill")
-            .doc("Delete a skill and all its versions")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_delete_skill::run(&mut args)?;
-        } else if noargs::cmd("list-files")
-            .doc("List all files")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_list_files::run(&mut args)?;
-        } else if noargs::cmd("get-file-metadata")
-            .doc("Get file metadata")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_get_file_metadata::run(&mut args)?;
-        } else if noargs::cmd("get-file")
-            .doc("Download file content")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_get_file::run(&mut args)?;
-        } else if noargs::cmd("delete-file")
-            .doc("Delete a file")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_delete_file::run(&mut args)?;
-        } else if noargs::cmd("clean-files")
-            .doc("Delete all files")
-            .take(&mut args)
-            .is_present()
-        {
-            daberu::subcommand_clean_files::run(&mut args)?;
         }
 
         if let Some(help) = args.finish()? {
@@ -165,24 +111,7 @@ fn main() -> noargs::Result<()> {
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
-        skill_ids: std::iter::from_fn(|| {
-            noargs::opt("skill")
-                .short('k')
-                .ty("SKILL_ID")
-                .doc(concat!(
-                    "Skill ID or preset name to use (e.g., 'pptx', 'skill_01ABC...')\n",
-                    "\n",
-                    "Skill IDs starting with 'skill_' are treated as custom skills,\n",
-                    "others are treated as Anthropic-provided skills.\n",
-                    "This option can be specified multiple times"
-                ))
-                .take(&mut args)
-                .present_and_then(|a| a.value().parse())
-                .transpose()
-        })
-        .collect::<Result<_, _>>()?,
     };
-    command.resolve_skill_presets();
 
     if command.enable_agents_md {
         if let Ok(r) = FileResource::new("AGENTS.md") {

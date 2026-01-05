@@ -7,11 +7,6 @@
   // Shell executable to use for running shell commands (--shell-command)
   "shell_executable": "sh",
 
-  // Preset groups of skills that can be referenced by name instead of listing individual skills.
-  "skill_presets": {
-    "official": ["xlsx", "pptx", "pdf", "docx"],
-  },
-
   // Preset groups of resources that can be referenced by name instead of listing individual resources.
   "resource_presets": {},
 }

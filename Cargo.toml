@@ -13,4 +13,4 @@ categories = ["command-line-utilities"]
 [dependencies]
 noargs = "0.4.0"
 nojson = "0.3.6"
-orfail = "1"
+orfail = "2"

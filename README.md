@@ -27,7 +27,6 @@ Options:
   -m, --model <MODEL_NAME>         Model name [env: DABERU_MODEL] [default: claude-sonnet-4-5]
   -s, --system <STRING>            System message
   -r, --resource <PATH>            File path to be used as a resource for the conversion
-  -k, --skill <SKILL_ID>           Skill ID or preset name to use (e.g., 'pptx', 'skill_01ABC...')
   -e, --shell-command <COMMAND>    Shell command to be used as a resource for the conversion
 ```
 

@@ -7,7 +7,6 @@ use orfail::OrFail;
 pub struct Config {
     pub resource_size_limit: usize,
     pub shell_executable: String,
-    pub skill_presets: BTreeMap<String, Vec<String>>,
     pub resource_presets: BTreeMap<String, Vec<crate::resource::ResourceSpec>>,
 }
 
@@ -33,13 +32,11 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Config {
     fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, Self::Error> {
         let resource_size_limit = value.to_member("resource_size_limit")?.required()?;
         let shell_executable = value.to_member("shell_executable")?.required()?;
-        let skill_presets = value.to_member("skill_presets")?.required()?;
         let resource_presets = value.to_member("resource_presets")?.required()?;
 
         Ok(Self {
             resource_size_limit: resource_size_limit.try_into()?,
             shell_executable: shell_executable.try_into()?,
-            skill_presets: skill_presets.try_into()?,
             resource_presets: resource_presets.try_into()?,
         })
     }

@@ -111,24 +111,7 @@ fn main() -> noargs::Result<()> {
                 .transpose()
         })
         .collect::<Result<_, _>>()?,
-        skill_ids: std::iter::from_fn(|| {
-            noargs::opt("skill")
-                .short('k')
-                .ty("SKILL_ID")
-                .doc(concat!(
-                    "Skill ID or preset name to use (e.g., 'pptx', 'skill_01ABC...')\n",
-                    "\n",
-                    "Skill IDs starting with 'skill_' are treated as custom skills,\n",
-                    "others are treated as Anthropic-provided skills.\n",
-                    "This option can be specified multiple times"
-                ))
-                .take(&mut args)
-                .present_and_then(|a| a.value().parse())
-                .transpose()
-        })
-        .collect::<Result<_, _>>()?,
     };
-    command.resolve_skill_presets();
 
     if command.enable_agents_md {
         if let Ok(r) = FileResource::new("AGENTS.md") {

@@ -15,7 +15,6 @@ const MAX_TOKENS: u32 = 10_000;
 pub struct Claude {
     api_key: String,
     model: String,
-    skill_ids: Vec<SkillId>,
 }
 
 impl Claude {
@@ -23,124 +22,36 @@ impl Claude {
         Ok(Self {
             api_key: command.anthropic_api_key.clone().or_fail()?,
             model,
-            skill_ids: command.skill_ids.clone(),
         })
     }
 
     pub fn run(&self, log: &MessageLog) -> orfail::Result<Message> {
         let (log, system_message) = log.strip_system_message();
-        let stream = self.skill_ids.is_empty(); // I do not know why, but this is needed
         let request = nojson::json(|f| {
             f.object(|f| {
                 f.member("model", &self.model)?;
-                f.member("stream", stream)?;
+                f.member("stream", true)?;
                 f.member("max_tokens", MAX_TOKENS)?;
                 f.member("messages", &log.messages)?;
                 if let Some(system_message) = &system_message {
                     f.member("system", system_message)?;
                 }
-                if self.skill_ids.is_empty() {
-                    return Ok(());
-                }
-
-                // Add skill related fields (container, tools) if skill_ids is not empty
-                f.member(
-                    "container",
-                    nojson::object(|f| {
-                        if let Some(id) = log.latest_container_id() {
-                            f.member("id", id)?;
-                        }
-
-                        f.member(
-                            "skills",
-                            nojson::array(|f| {
-                                for skill_id in &self.skill_ids {
-                                    f.element(nojson::object(|f| {
-                                        f.member("type", skill_id.source())?;
-                                        f.member("skill_id", &skill_id.0)?;
-                                        f.member("version", "latest")
-                                    }))?;
-                                }
-                                Ok(())
-                            }),
-                        )?;
-                        Ok(())
-                    }),
-                )?;
-                f.member(
-                    "tools",
-                    [nojson::object(|f| {
-                        f.member("type", "code_execution_20250825")?;
-                        f.member("name", "code_execution")
-                    })],
-                )?;
                 Ok(())
             })
         });
 
-        let mut request_builder = crate::curl::CurlRequest::new(API_END_POINT)
+        let request_builder = crate::curl::CurlRequest::new(API_END_POINT)
             .header("Content-Type", "application/json")
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", ANTHROPIC_VERSION);
-
-        // Add skill related headers if skill_ids is not empty
-        if !self.skill_ids.is_empty() {
-            request_builder = request_builder.header(
-                "anthropic-beta",
-                "code-execution-2025-08-25,skills-2025-10-02",
-            );
-        }
-
         let response = request_builder.post(request)?;
-
         let reader = response.check_success()?;
-        let reply = if stream {
-            self.handle_stream_response(reader).or_fail()?
-        } else {
-            self.handle_response(reader).or_fail()?
-        };
-
+        let reply = self.handle_stream_response(reader).or_fail()?;
         Ok(reply)
-    }
-
-    fn handle_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
-        let mut text = String::new();
-        let mut reader = reader;
-        reader.read_to_string(&mut text).or_fail()?;
-
-        let nojson::Json(response) = text
-            .parse::<nojson::Json<ApiResponse>>()
-            .or_fail_with(|e| format!("failed to parse response: {e}"))?;
-
-        let mut content = String::new();
-
-        for block in response.content {
-            match block {
-                ContentBlock::Text(text) => {
-                    content.push_str(&text);
-                    content.push('\n');
-                }
-                ContentBlock::ServerToolUse { id, name, .. } => {
-                    content.push_str(&format!("[Tool: {name} ({id})]\n"));
-                }
-                ContentBlock::ToolResult { tool_use_id, .. } => {
-                    content.push_str(&format!("[Result from tool {tool_use_id}]\n\n------\n\n"));
-                }
-            }
-        }
-        print!("{content}");
-
-        Ok(Message {
-            role: Role::Assistant,
-            content,
-            model: Some(self.model.clone()),
-            container_id: response.container.map(|c| c.id),
-        })
     }
 
     fn handle_stream_response<R: BufRead>(&self, reader: R) -> orfail::Result<Message> {
         let mut content = String::new();
-        let mut container_id: Option<String> = None;
 
         for line in reader.lines() {
             let line = line.or_fail()?;
@@ -158,24 +69,12 @@ impl Claude {
                 .parse::<nojson::Json<Data>>()
                 .or_fail_with(|e| format!("failed to parse line: {line} ({e})"))?;
             match data {
-                Data::MessageStart {
-                    stop_reason,
-                    container,
-                } => {
-                    if let Some(c) = container {
-                        container_id = Some(c.id);
-                    }
+                Data::MessageStart { stop_reason } => {
                     if let Some(reason) = stop_reason {
                         (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
                     }
                 }
-                Data::MessageDelta {
-                    stop_reason,
-                    container,
-                } => {
-                    if let Some(c) = container {
-                        container_id = Some(c.id);
-                    }
+                Data::MessageDelta { stop_reason } => {
                     if let Some(reason) = stop_reason {
                         (reason == "end_turn").or_fail_with(|()| format!("API error: {reason}"))?;
                     }
@@ -217,66 +116,20 @@ impl Claude {
             role: Role::Assistant,
             content,
             model: Some(self.model.clone()),
-            container_id,
-        })
-    }
-}
-
-#[derive(Debug)]
-struct ApiResponse {
-    content: Vec<ContentBlock>,
-    container: Option<Container>,
-}
-
-#[derive(Debug)]
-struct Container {
-    id: String,
-}
-
-impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Container {
-    type Error = nojson::JsonParseError;
-
-    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
-        let id = value.to_member("id")?.required()?;
-        Ok(Self { id: id.try_into()? })
-    }
-}
-
-impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ApiResponse {
-    type Error = nojson::JsonParseError;
-
-    fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
-        let content = value.to_member("content")?.required()?;
-        let container = value.to_member("container")?;
-        Ok(Self {
-            content: content.try_into()?,
-            container: container.try_into()?,
         })
     }
 }
 
 #[derive(Debug)]
 enum Data {
-    MessageStart {
-        stop_reason: Option<String>,
-        container: Option<Container>,
-    },
-    MessageDelta {
-        stop_reason: Option<String>,
-        container: Option<Container>,
-    },
+    MessageStart { stop_reason: Option<String> },
+    MessageDelta { stop_reason: Option<String> },
     MessageStop,
-    ContentBlockStart {
-        content_block: ContentBlock,
-    },
-    ContentBlockDelta {
-        delta: Delta,
-    },
+    ContentBlockStart { content_block: ContentBlock },
+    ContentBlockDelta { delta: Delta },
     ContentBlockStop,
     Ping,
-    Error {
-        error: String,
-    },
+    Error { error: String },
 }
 
 impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
@@ -285,20 +138,12 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for Data {
     fn try_from(value: nojson::RawJsonValue<'text, 'raw>) -> Result<Self, nojson::JsonParseError> {
         let ty = value.to_member("type")?.required()?;
         match ty.to_unquoted_string_str()?.as_ref() {
-            "message_start" => {
-                let container = value.to_member("container")?;
-                Ok(Self::MessageStart {
-                    stop_reason: value.to_member("stop_reason")?.try_into()?,
-                    container: container.try_into()?,
-                })
-            }
-            "message_delta" => {
-                let container = value.to_member("container")?;
-                Ok(Self::MessageDelta {
-                    stop_reason: value.to_member("stop_reason")?.try_into()?,
-                    container: container.try_into()?,
-                })
-            }
+            "message_start" => Ok(Self::MessageStart {
+                stop_reason: value.to_member("stop_reason")?.try_into()?,
+            }),
+            "message_delta" => Ok(Self::MessageDelta {
+                stop_reason: value.to_member("stop_reason")?.try_into()?,
+            }),
             "message_stop" => Ok(Self::MessageStop),
             "content_block_start" => {
                 let content_block = value.to_member("content_block")?.required()?;
@@ -405,25 +250,4 @@ impl<'text, 'raw> TryFrom<nojson::RawJsonValue<'text, 'raw>> for ContentBlock {
 #[derive(Debug)]
 struct Delta {
     text: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SkillId(pub String);
-
-impl SkillId {
-    pub fn source(&self) -> &'static str {
-        if self.0.starts_with("skill_") {
-            "custom"
-        } else {
-            "anthropic"
-        }
-    }
-}
-
-impl std::str::FromStr for SkillId {
-    type Err = std::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_owned()))
-    }
 }

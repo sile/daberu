@@ -14,5 +14,8 @@
     "orfail": [
       {"type": "glob", "pattern": "~/rust/daberu/llm-docs/orfail.md"},
     ],
+    "raftbare": [
+      {"type": "glob", "pattern": "~/rust/daberu/llm-docs/raftbare.md"},
+    ],
   },
 }
